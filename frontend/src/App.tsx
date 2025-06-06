@@ -1,9 +1,11 @@
-import './App.css'
+import './App.css';
+import TextEditor from "../components/TextEditor";
 
 function App() {
 
   return (
     <>
+      <TextEditor/>
     </>
   )
 }
