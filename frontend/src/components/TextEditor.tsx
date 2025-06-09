@@ -1,12 +1,16 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 
 import Editor from '@monaco-editor/react';
 import * as monaco from "monaco-editor";
 
 const languages = ["javascript","python","cpp"];
 
-function TextEditor() {
-  const [code, setCode] = useState<string>("");
+interface MyComponentProps {
+  code: string;
+  setCode:React.Dispatch<React.SetStateAction<string>>,
+}
+
+const TextEditor:React.FC<MyComponentProps> = ({code, setCode})=> {
   const [language,setLanguage] = useState<string>("javascript");
 
 
@@ -22,7 +26,6 @@ function TextEditor() {
 
   }
 
-
   return (
     <div className='w-full h-screen flex flex-col gap-2'>
       <div className='flex justify-end '>
@@ -35,7 +38,7 @@ function TextEditor() {
        <Editor
         height="100%"
         language={language}
-        defaultValue={code}
+        value={code}
         theme="vs-dark"
         onChange={handleEditorChange}
         onValidate={handleCodeValidation}
