@@ -1,13 +1,13 @@
 import { OnGatewayConnection, SubscribeMessage, WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
 import {Socket, Server} from "socket.io";
 
-@WebSocketGateway(3002,{})
+@WebSocketGateway(3002,{cors:{origin:"*"}})
 export class CodeSyncGateway implements OnGatewayConnection{
 
-    private code:string = "";
+    private code:string = "console.log('it's working');";
 
     handleConnection(client: any, ...args: any[]) {
-        client.emit("code:sync",this.code);
+        client.emit("code:updatedCode",this.code);
     }
 
     @WebSocketServer() server:Server;
@@ -17,6 +17,6 @@ export class CodeSyncGateway implements OnGatewayConnection{
 
         this.code = message;
 
-        this.server.emit("code:sync",message);
+        this.server.emit("code:updatedCode",message);
     }
 }
