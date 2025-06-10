@@ -1,17 +1,43 @@
-import React, { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import Editor from '@monaco-editor/react';
 import * as monaco from "monaco-editor";
+import { socket } from '../utils/socket';
 
 const languages = ["javascript","python","cpp"];
 
-interface MyComponentProps {
-  code: string;
-  setCode:React.Dispatch<React.SetStateAction<string>>,
-}
 
-const TextEditor:React.FC<MyComponentProps> = ({code, setCode})=> {
-  const [language,setLanguage] = useState<string>("javascript");
+const TextEditor = ()=> {
+    
+    const [code, setCode] = useState<string>("");
+    const [language,setLanguage] = useState<string>("javascript");
+
+  useEffect(()=>{
+    const delayDebounce =setTimeout(()=>{
+      try{
+        socket.emit("code:sync",code);
+      }catch(err){
+        console.log(err);
+      }
+    },250);
+
+
+    return ()=>clearTimeout(delayDebounce);
+  },[code]);
+
+  useEffect(()=>{
+    socket.connect();
+
+    socket.on("code:updatedCode",(data:string) => {
+      setCode(data);
+    })
+
+    return ()=>{
+      socket.off("code:updatedCode");
+      socket.disconnect();
+    }
+  },[]);
+  
 
 
   const handleEditorChange = (value: string | undefined) => {
