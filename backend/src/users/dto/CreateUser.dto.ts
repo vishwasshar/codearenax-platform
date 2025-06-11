@@ -1,7 +1,7 @@
 import { Transform } from "class-transformer";
 import { IsEmail, IsString, MinLength } from "class-validator";
 
-export class UserDto{
+export class CreateUserDto{
 
     @IsString({message:"Please Enter a valid string"})
     @Transform(({value})=>{
