@@ -5,6 +5,7 @@ import { UsersModule } from './users/users.module';
 import { CodeSyncModule } from './codeSync/codeSync.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { RoomsModule } from './rooms/rooms.module';
 
 @Module({
   imports: [
@@ -18,7 +19,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       useFactory:(configService:ConfigService)=>({
         uri: configService.get<string>('MONGOOSE_URI',{infer:true})
       })
-    })
+    }), RoomsModule
     
   ],
   controllers: [AppController],
