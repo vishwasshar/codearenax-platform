@@ -6,6 +6,7 @@ import { CodeSyncModule } from './codeSync/codeSync.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { RoomsModule } from './rooms/rooms.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { RoomsModule } from './rooms/rooms.module';
       useFactory:(configService:ConfigService)=>({
         uri: configService.get<string>('MONGOOSE_URI',{infer:true})
       })
-    }), RoomsModule
+    }), RoomsModule, AuthModule
     
   ],
   controllers: [AppController],
