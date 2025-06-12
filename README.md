@@ -26,7 +26,7 @@ Right now, the project is in its early stages. Our focus is on building a solid 
 - Frontend: React, TypeScript, Monaco Editor
 - Backend: NestJS, Socket.IO
 - Database: MongoDB (for chat and users)
-- Authentication: JWT
+- Authentication: JWT & Passport
 
 ---
 
