@@ -5,6 +5,9 @@ import { LangTypes } from "src/common/enums";
 export class Room{
 
     @Prop({required:true})
+    name:string;
+
+    @Prop({required:true})
     content:string;
 
     @Prop({required:true, enum:LangTypes, default:LangTypes.JS})
