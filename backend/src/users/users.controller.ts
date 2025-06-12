@@ -1,7 +1,6 @@
 import { BadRequestException, Body, Controller, Get, HttpException, NotFoundException, Param, ParseIntPipe, Patch, Post, UseGuards, ValidationPipe } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/CreateUser.dto';
-import { AuthGuard } from 'src/auth/auth.guard';
 import { UpdateUserDto } from './dto/UpdateUser.dto';
 import mongoose from 'mongoose';
 
@@ -32,8 +31,6 @@ export class UsersController {
     }
 
     @Post()
-    // Added Basic Request Guard
-    @UseGuards(AuthGuard)
     // Added Validation Pipe for Incoming Data and applied Transformation (Class-Validator and Class-Transformer Packages)
     addNewUser(@Body(new ValidationPipe({transform:true})) user:CreateUserDto){
         try{
