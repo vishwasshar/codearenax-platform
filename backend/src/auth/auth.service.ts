@@ -4,6 +4,7 @@ import { Model } from 'mongoose';
 import { User } from 'src/schemas/user.schema';
 import { AuthDto } from './dtos/auth.dto';
 import { JwtService } from '@nestjs/jwt';
+import { comparePassword } from 'src/utils/bcrypt';
 
 @Injectable()
 export class AuthService {
@@ -11,6 +12,7 @@ export class AuthService {
     @InjectModel(User.name) private userModel: Model<User>,
     private jwtService: JwtService,
   ) {}
+
   async validateUser(autoDto: AuthDto) {
     const user = await this.userModel.findOne({
       email: autoDto.email,
@@ -20,7 +22,7 @@ export class AuthService {
     if (!user) return null;
     const { password, ...payload } = user;
 
-    if (autoDto.password == password) {
+    if (comparePassword(autoDto.password, password)) {
       return this.jwtService.sign(payload, { secret: process.env.JWT_SECRET });
     }
   }

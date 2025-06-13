@@ -7,23 +7,23 @@ import { UpdateUserDto } from './dto/UpdateUser.dto';
 
 @Injectable()
 export class UsersService {
-    constructor(@InjectModel(User.name) private userModel:Model<User>){}
+  constructor(@InjectModel(User.name) private userModel: Model<User>) {}
 
-    private users = [{id:1,name:"asdf",email:"asdf@asdf.com",password:"testPass"}];
+  async getAllUsers() {
+    return await this.userModel.find();
+  }
 
-    getAllUsers(){
-        return this.userModel.find();
-    }
-    
-    getUserById(id:number){
-        return this.userModel.findById(id);
-    }
-    
-    addNewUser(user:CreateUserDto){
-        return this.userModel.create(user);
-    }
+  async getUserById(id: number) {
+    return await this.userModel.findById(id);
+  }
 
-    updateUser(id:string, updatedUser:UpdateUserDto){
-        return this.userModel.findByIdAndUpdate(id,updatedUser,{new:true})
-    }
+  async addNewUser(user: CreateUserDto) {
+    return await this.userModel.create(user);
+  }
+
+  async updateUser(id: string, updatedUser: UpdateUserDto) {
+    return await this.userModel.findOneAndUpdate({ id }, updatedUser, {
+      new: true,
+    });
+  }
 }
