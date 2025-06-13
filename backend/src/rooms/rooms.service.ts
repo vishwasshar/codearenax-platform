@@ -7,22 +7,23 @@ import { UpdateRoom } from './dtos/UpdateRoom.dto';
 
 @Injectable()
 export class RoomsService {
+  constructor(@InjectModel(Room.name) private roomModel: Model<Room>) {}
 
-    constructor(@InjectModel(Room.name) private roomModel:Model<Room>){}
+  async getAllRooms() {
+    return await this.roomModel.find();
+  }
 
-    getAllRooms(){
-        return this.roomModel.find();
-    }
+  async getRoomById(id: string) {
+    return await this.roomModel.findById(id);
+  }
 
-    getRoomById(id:string){
-        return this.roomModel.findById(id);
-    }
+  async createNewRoom(createRoom: CreateRoom) {
+    return await this.roomModel.create(createRoom);
+  }
 
-    createNewRoom(createRoom: CreateRoom){
-        return this.roomModel.create(createRoom);
-    }
-
-    updateRoom(id:string, updateRoom: UpdateRoom){
-        return this.roomModel.findByIdAndUpdate(id, updateRoom, {new:true});
-    }
+  async updateRoom(id: string, updateRoom: UpdateRoom) {
+    return await this.roomModel.findByIdAndUpdate(id, updateRoom, {
+      new: true,
+    });
+  }
 }
