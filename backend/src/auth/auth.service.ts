@@ -14,10 +14,12 @@ export class AuthService {
   ) {}
 
   async validateUser(autoDto: AuthDto) {
-    const user = await this.userModel.findOne({
-      email: autoDto.email,
-      password: autoDto.password,
-    });
+    const user = await this.userModel
+      .findOne({
+        email: autoDto.email,
+        password: autoDto.password,
+      })
+      .select('-rooms');
 
     if (!user) return null;
     const { password, ...payload } = user;
@@ -25,5 +27,6 @@ export class AuthService {
     if (comparePassword(autoDto.password, password)) {
       return this.jwtService.sign(payload, { secret: process.env.JWT_SECRET });
     }
+    return null;
   }
 }
