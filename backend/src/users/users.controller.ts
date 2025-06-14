@@ -9,12 +9,17 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Req,
+  UseGuards,
   ValidationPipe,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/CreateUser.dto';
 import { UpdateUserDto } from './dto/UpdateUser.dto';
 import mongoose from 'mongoose';
+import { JWTGuard } from 'src/auth/guards/jwt.guard';
+import { JwtPayload } from 'src/auth/dtos/jwt-payload.dto';
+import { Request } from 'express';
 
 @Controller('users')
 export class UsersController {
@@ -54,16 +59,22 @@ export class UsersController {
     }
   }
 
-  @Patch(':id')
+  @Patch()
+  @UseGuards(JWTGuard)
   async updateUser(
-    @Param('id') id: string,
+    @Req() req: Request,
     @Body(new ValidationPipe({ transform: true })) updatedData: UpdateUserDto,
   ) {
     try {
-      if (!mongoose.Types.ObjectId.isValid(id))
+      const user = req.user as JwtPayload;
+
+      if (!mongoose.Types.ObjectId.isValid(user._id))
         throw new HttpException('Invalid Id', 400);
 
-      const updatedUser = await this.usersService.updateUser(id, updatedData);
+      const updatedUser = await this.usersService.updateUser(
+        user._id,
+        updatedData,
+      );
 
       if (!updatedUser) throw new HttpException('User not found', 404);
 
