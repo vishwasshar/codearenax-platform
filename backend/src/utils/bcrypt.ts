@@ -1,9 +1,9 @@
 import * as bcrypt from 'bcrypt';
 
-export const encodePassword = (rawPassword: string) => {
+export const encodePassword = async (rawPassword: string) => {
   const SALT = bcrypt.genSaltSync();
 
-  return bcrypt.hash(rawPassword, SALT);
+  return await bcrypt.hash(rawPassword, SALT);
 };
 
 export const comparePassword = (

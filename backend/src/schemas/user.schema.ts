@@ -28,13 +28,10 @@ export const UserSchema = SchemaFactory.createForClass(User);
 
 export type UserDocument = User & Document;
 
-UserSchema.pre<UserDocument>(
-  ['findOneAndUpdate', 'updateOne', 'save'],
-  async function (next) {
-    if (!this.isModified('password')) return next();
+UserSchema.pre<UserDocument>('save', async function (next) {
+  if (!this.isModified('password')) return next();
 
-    this.password = encodePassword(this.password);
+  this.password = await encodePassword(this.password);
 
-    next();
-  },
-);
+  next();
+});

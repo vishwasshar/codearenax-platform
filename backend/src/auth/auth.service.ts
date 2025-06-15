@@ -17,9 +17,9 @@ export class AuthService {
     const user = await this.userModel
       .findOne({
         email: autoDto.email,
-        password: autoDto.password,
       })
-      .select('-rooms');
+      .select('-rooms')
+      .lean();
 
     if (!user) return null;
     const { password, ...payload } = user;

@@ -18,7 +18,8 @@ export class UsersService {
   }
 
   async addNewUser(user: CreateUserDto) {
-    return await this.userModel.create(user);
+    const newUser = new this.userModel(user);
+    return newUser.save();
   }
 
   async updateUser(id: string, updatedUser: UpdateUserDto) {
