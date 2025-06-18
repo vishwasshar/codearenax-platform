@@ -1,6 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import mongoose, { Document } from 'mongoose';
-import { Room } from './room.schema';
+import { Document } from 'mongoose';
 import { UserRoles } from 'src/common/enums';
 import { encodePassword } from 'src/utils/bcrypt';
 
@@ -17,14 +16,19 @@ export class User {
 
   @Prop({ required: true })
   password: string;
-
-  // 1-Many Relationship with Room Schema
-  @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Room' }] })
-  rooms: Room[];
 }
 
 // Creating a Schema using a Class
 export const UserSchema = SchemaFactory.createForClass(User);
+
+UserSchema.virtual('rooms', {
+  ref: 'Room',
+  localField: '_id',
+  foreignField: 'accessList.user',
+});
+
+UserSchema.set('toObject', { virtuals: true });
+UserSchema.set('toJSON', { virtuals: true });
 
 export type UserDocument = User & Document;
 
