@@ -4,14 +4,11 @@ import { Model } from 'mongoose';
 import { Room } from 'src/schemas/room.schema';
 import { CreateRoom } from './dtos/CreateRoom.dto';
 import { UpdateRoom } from './dtos/UpdateRoom.dto';
-import { User } from 'src/schemas/user.schema';
+import { AccessRole } from 'src/common/enums/access-role.enum';
 
 @Injectable()
 export class RoomsService {
-  constructor(
-    @InjectModel(Room.name) private roomModel: Model<Room>,
-    @InjectModel(User.name) private userModel: Model<User>,
-  ) {}
+  constructor(@InjectModel(Room.name) private roomModel: Model<Room>) {}
 
   async getAllRooms() {
     return await this.roomModel.find();
@@ -22,13 +19,10 @@ export class RoomsService {
   }
 
   async createNewRoom(createRoom: CreateRoom, userId: string) {
-    const user = await this.userModel.findById(userId);
-
-    if (!user) throw new HttpException('User Not Found!', 404);
-
-    const newRoom = await this.roomModel.create(createRoom);
-
-    await user.updateOne({ $push: { rooms: newRoom._id } });
+    const newRoom = await this.roomModel.create({
+      ...createRoom,
+      accessList: { user: userId, role: AccessRole.OWNER },
+    });
 
     return newRoom;
   }
