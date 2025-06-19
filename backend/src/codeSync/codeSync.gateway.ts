@@ -17,15 +17,38 @@ export class CodeSyncGateway
   constructor(
     private jwtService: JwtService,
     private readonly roomsService: RoomsService,
-  ) {}
+  ) {
+    // Invoke the interval function when class is initialised.
+    this.syncInterval();
+  }
 
   @WebSocketServer() server: Server;
 
+  syncInterval() {
+    // syncRooms function is binded with this scope for every 50 Seconds.
+    setInterval(this.syncRooms.bind(this), 50000);
+  }
+
+  async syncRooms() {
+    if (!this.activeRooms) return;
+    for (const [roomId, room] of this.activeRooms?.entries()) {
+      // Check if room have any update and then update it on server accordingly
+      if (room.isDirty) {
+        await this.roomsService.updateRoom(roomId, room);
+
+        // Resetting the dirty state to false after update
+        room.isDirty = false;
+
+        this.activeRooms.set(roomId, room);
+      }
+    }
+  }
+
   // Store detail of rooms (room._id, room - obj.)
-  private activeRooms: Map<string, any> = new Map();
+  private activeRooms: Map<string, any> = new Map<string, any>();
 
   // Store detail of client socket id and user id (client.id, user._id)
-  private userIds: Map<string, string> = new Map();
+  private userIds: Map<string, string> = new Map<string, string>();
 
   // Handle user socket connection request
   async handleConnection(client: any, ...args: any[]) {
@@ -75,6 +98,7 @@ export class CodeSyncGateway
         room = await this.roomsService.getRoomById(roomId);
 
         room.activeUsers = [];
+        room.isDirty = false;
         this.activeRooms.set(roomId, room);
       }
 
@@ -143,6 +167,8 @@ export class CodeSyncGateway
     ) {
       room.content = message.content;
       room.lang = message.lang;
+      // Setting Dirty State to true if there any update in the room content.
+      room.isDirty = true;
 
       // Updating Code in inMemory Storage
       this.activeRooms.set(message.roomId, room);
