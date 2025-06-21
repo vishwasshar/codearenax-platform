@@ -8,18 +8,49 @@ import { useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { useOnline } from "../hooks/useOnline";
 import { Socket } from "socket.io-client";
+import { Terminal } from "@xterm/xterm";
+import { FitAddon } from "xterm-addon-fit";
+import "@xterm/xterm/css/xterm.css";
 
 const TextEditor = () => {
   const [code, setCode] = useState<string>("");
+  const [socket, setSocket] = useState<Socket | null>(null);
   const [language, setLanguage] = useState<string>("javascript");
+
   const { roomId } = useParams();
   const {
     user: { token },
   } = useSelector((state: any) => state.user);
-  const isOnline = useOnline();
-  const [socket, setSocket] = useState<Socket | null>(null);
 
+  const terminalRef = useRef<HTMLDivElement | null>(null);
+  const terminalInstance = useRef<Terminal | null>(null);
   const isRemoteUpdate = useRef(false);
+
+  const isOnline = useOnline();
+
+  useEffect(() => {
+    if (terminalRef.current) {
+      const term = new Terminal({
+        convertEol: true,
+        fontSize: 14,
+        theme: { background: "#1e1e1e" },
+      });
+
+      const fitAddOn = new FitAddon();
+      term.loadAddon(fitAddOn);
+      term.open(terminalRef.current);
+      fitAddOn.fit();
+
+      term.write("Welcome to Code Arena X Terminal\n");
+      terminalInstance.current = term;
+      window.addEventListener("resize", () => fitAddOn?.fit());
+
+      return () => {
+        term.dispose();
+        window.removeEventListener("resize", () => {});
+      };
+    }
+  }, [terminalRef]);
 
   useEffect(() => {
     setSocket(getSocket());
@@ -88,7 +119,7 @@ const TextEditor = () => {
 
   return (
     <div className="w-full h-screen flex flex-col gap-2">
-      <div className="flex justify-end ">
+      <div className="flex justify-end h-fit">
         <select
           onChange={(e) => {
             setLanguage(e.target.value);
@@ -104,13 +135,16 @@ const TextEditor = () => {
         </select>
       </div>
       <Editor
-        height="100%"
+        className="flex-1"
         language={language}
         value={code}
         theme="vs-dark"
         onChange={handleEditorChange}
         onValidate={handleCodeValidation}
       />
+      <div className="h-2/12 p-1">
+        <div ref={terminalRef} style={{ height: "100%", width: "100%" }}></div>
+      </div>
     </div>
   );
 };
