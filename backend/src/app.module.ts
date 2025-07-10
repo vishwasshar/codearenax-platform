@@ -7,6 +7,8 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { RoomsModule } from './rooms/rooms.module';
 import { AuthModule } from './auth/auth.module';
+import { RunCodeModule } from './run-code/run-code.module';
+import { MemoryStoreModule } from './memory-store/memory-store.module';
 
 @Module({
   imports: [
@@ -20,7 +22,7 @@ import { AuthModule } from './auth/auth.module';
       useFactory:(configService:ConfigService)=>({
         uri: configService.get<string>('MONGOOSE_URI',{infer:true})
       })
-    }), RoomsModule, AuthModule
+    }), RoomsModule, AuthModule, RunCodeModule, MemoryStoreModule
     
   ],
   controllers: [AppController],
