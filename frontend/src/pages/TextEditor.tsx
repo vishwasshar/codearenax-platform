@@ -11,6 +11,7 @@ import { Socket } from "socket.io-client";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "xterm-addon-fit";
 import "@xterm/xterm/css/xterm.css";
+import { authRequest } from "../utils/axios.interceptor";
 
 const TextEditor = () => {
   const [code, setCode] = useState<string>("");
@@ -99,13 +100,28 @@ const TextEditor = () => {
       setLanguage(data.lang);
     });
 
+    socket?.on("run-code:output", (data: any) => {
+      terminalInstance.current?.writeln(data);
+    });
+
     return () => {
       socket?.off("room:init");
       socket?.off("room:update");
+      socket?.off("run-code:output");
       socket?.emit("room:leave", roomId);
       // socket?.disconnect();
     };
   }, [roomId, socket, isOnline, socket?.active]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "s") {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+  }, []);
 
   const handleEditorChange = (value: string | undefined) => {
     setCode(value || "");
@@ -117,9 +133,19 @@ const TextEditor = () => {
     });
   };
 
+  const handleCodeRun = async () => {
+    try {
+      await authRequest.post("/run-code", {
+        roomId,
+      });
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
   return (
     <div className="w-full h-screen flex flex-col gap-2">
-      <div className="flex justify-end h-fit">
+      <div className="flex justify-between h-fit">
         <select
           onChange={(e) => {
             setLanguage(e.target.value);
@@ -133,6 +159,9 @@ const TextEditor = () => {
             </option>
           ))}
         </select>
+        <button className="btn btn-ghost" onClick={handleCodeRun}>
+          Run
+        </button>
       </div>
       <Editor
         className="flex-1"

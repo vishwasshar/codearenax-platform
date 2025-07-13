@@ -14,6 +14,9 @@ export class Room {
   @Prop({ required: true, enum: LangTypes, default: LangTypes.JS })
   lang: LangTypes;
 
+  @Prop({})
+  output: string;
+
   @Prop([
     {
       user: { type: mongoose.Types.ObjectId, ref: 'User' },

@@ -10,7 +10,7 @@ export class RunCodeService {
   async runCode(code: string, language: LangTypes) {
     try {
       const res = await axios.post(
-        process.env.CODE_EXECUTION_ENGINE_API ||
+        process.env.CODE_EXECUTION_ENGINE_API + '/api/execute' ||
           'http://127.0.0.1:3000/api/execute',
         {
           code,
@@ -19,7 +19,9 @@ export class RunCodeService {
         { headers: { 'Content-Type': 'application/json' } },
       );
 
-      return res;
-    } catch (err) {}
+      return res.data;
+    } catch (err) {
+      console.log(err);
+    }
   }
 }

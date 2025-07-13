@@ -1,3 +1,4 @@
+import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import {
   OnGatewayConnection,
@@ -11,6 +12,7 @@ import { AccessRole } from 'src/common/enums/access-role.enum';
 import { MemoryStoreService } from 'src/memory-store/memory-store.service';
 import { RoomsService } from 'src/rooms/rooms.service';
 
+@Injectable()
 @WebSocketGateway(3002, { cors: { origin: '*' } })
 export class CodeSyncGateway
   implements OnGatewayConnection, OnGatewayDisconnect
@@ -174,5 +176,10 @@ export class CodeSyncGateway
       // Sending received data to all of the active socket members
       client.to(message.roomId).emit('room:update', message);
     }
+  }
+
+  // After Running the code we need to send it to all active users.
+  handleCodeOuput(roomId: string, output: string) {
+    this.server.to(roomId).emit('run-code:output', output);
   }
 }
