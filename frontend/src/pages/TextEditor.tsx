@@ -118,6 +118,11 @@ const TextEditor = () => {
       if ((e.metaKey || e.ctrlKey) && e.key === "s") {
         e.preventDefault();
       }
+
+      if ((e.metaKey || e.ctrlKey) && (e.key === "Enter" || e.key == "'")) {
+        e.preventDefault();
+        handleCodeRun();
+      }
     };
 
     document.addEventListener("keydown", handleKeyDown);
