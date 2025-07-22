@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { unAuthRequest } from "../utils/axios.interceptor";
 import { useDispatch, useSelector } from "react-redux";
 import { login } from "../redux/slices/user.slice";
+import { useGoogleLogin } from "@react-oauth/google";
 
 export const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
@@ -25,6 +26,24 @@ export const Login = () => {
       navigate("/create-room");
     } catch (err) {}
   };
+
+  const googleLoginHandler = async (response: any) => {
+    try {
+      const res = await unAuthRequest.post("auth/google/code", {
+        code: response.code,
+      });
+      dispatch(login({ token: res.data }));
+      navigate("/create-room");
+    } catch (err) {}
+  };
+
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess: googleLoginHandler,
+    onError: () => {
+      console.log("Login Failed");
+    },
+    flow: "auth-code",
+  });
 
   useEffect(() => {
     console.log(user);
@@ -68,6 +87,13 @@ export const Login = () => {
               </div>
               <button className="btn btn-neutral mt-4" type="submit">
                 Login
+              </button>
+              <button
+                className="btn btn-neutral mt-4"
+                onClick={handleGoogleLogin}
+                type="button"
+              >
+                Login With Google
               </button>
             </fieldset>
           </form>
