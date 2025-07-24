@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import Editor from "@monaco-editor/react";
+import Editor, { type OnMount } from "@monaco-editor/react";
 import * as monaco from "monaco-editor";
 import { getSocket, createSocket } from "../utils/socket";
 import { LangTypes } from "../commons/vars/lang-types";
@@ -12,6 +12,8 @@ import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "xterm-addon-fit";
 import "@xterm/xterm/css/xterm.css";
 import { authRequest } from "../utils/axios.interceptor";
+import { useCRDTHook } from "../hooks/useCRDTHook";
+import { MonacoBinding } from "y-monaco";
 
 const TextEditor = () => {
   const [code, setCode] = useState<string>("");
@@ -19,117 +21,129 @@ const TextEditor = () => {
   const [language, setLanguage] = useState<string>("javascript");
 
   const { roomId } = useParams();
-  const {
-    user: { token },
-  } = useSelector((state: any) => state.user);
+  const ydoc = useCRDTHook(roomId || "");
 
-  const terminalRef = useRef<HTMLDivElement | null>(null);
-  const terminalInstance = useRef<Terminal | null>(null);
-  const isRemoteUpdate = useRef(false);
+  // const {
+  //   user: { token },
+  // } = useSelector((state: any) => state.user);
 
-  const isOnline = useOnline();
+  // const terminalRef = useRef<HTMLDivElement | null>(null);
+  // const terminalInstance = useRef<Terminal | null>(null);
+  // const isRemoteUpdate = useRef(false);
 
-  useEffect(() => {
-    if (terminalRef.current) {
-      const term = new Terminal({
-        convertEol: true,
-        fontSize: 14,
-        theme: { background: "#1e1e1e" },
-      });
+  // const isOnline = useOnline();
 
-      const fitAddOn = new FitAddon();
-      term.loadAddon(fitAddOn);
-      term.open(terminalRef.current);
-      fitAddOn.fit();
+  // useEffect(() => {
+  //   if (terminalRef.current) {
+  //     const term = new Terminal({
+  //       convertEol: true,
+  //       fontSize: 14,
+  //       theme: { background: "#1e1e1e" },
+  //     });
 
-      term.write("Welcome to Code Arena X Terminal\n");
-      terminalInstance.current = term;
-      window.addEventListener("resize", () => fitAddOn?.fit());
+  //     const fitAddOn = new FitAddon();
+  //     term.loadAddon(fitAddOn);
+  //     term.open(terminalRef.current);
+  //     fitAddOn.fit();
 
-      return () => {
-        term.dispose();
-        window.removeEventListener("resize", () => {});
-      };
+  //     term.write("Welcome to Code Arena X Terminal\n");
+  //     terminalInstance.current = term;
+  //     window.addEventListener("resize", () => fitAddOn?.fit());
+
+  //     return () => {
+  //       term.dispose();
+  //       window.removeEventListener("resize", () => {});
+  //     };
+  //   }
+  // }, [terminalRef]);
+
+  // useEffect(() => {
+  //   setSocket(getSocket());
+  // }, [getSocket()]);
+
+  // useEffect(() => {
+  //   if (socket?.active && !isRemoteUpdate.current) {
+  //     const delayDebounce = setTimeout(() => {
+  //       try {
+  //         socket?.emit("room:edit", {
+  //           content: code,
+  //           lang: language,
+  //           roomId,
+  //         });
+  //       } catch (err) {
+  //         console.log(err);
+  //       }
+  //     }, 250);
+
+  //     return () => clearTimeout(delayDebounce);
+  //   }
+
+  //   isRemoteUpdate.current = false;
+  // }, [code, language]);
+
+  // useEffect(() => {
+  //   if (token) {
+  //     createSocket(token);
+  //   }
+  // }, [token]);
+
+  // useEffect(() => {
+  //   if (!socket?.active) return;
+
+  //   socket?.emit("room:join", roomId);
+
+  //   socket?.on("room:init", (data: any) => {
+  //     isRemoteUpdate.current = true;
+  //     setCode(data.content);
+  //     setLanguage(data.lang);
+  //   });
+
+  //   socket?.on("room:update", (data: any) => {
+  //     isRemoteUpdate.current = true;
+  //     setCode(data.content);
+  //     setLanguage(data.lang);
+  //   });
+
+  //   socket?.on("run-code:output", (data: any) => {
+  //     terminalInstance.current?.writeln(data);
+  //   });
+
+  //   return () => {
+  //     socket?.off("room:init");
+  //     socket?.off("room:update");
+  //     socket?.off("run-code:output");
+  //     socket?.emit("room:leave", roomId);
+  //     // socket?.disconnect();
+  //   };
+  // }, [roomId, socket, isOnline, socket?.active]);
+
+  // useEffect(() => {
+  //   const handleKeyDown = (e: KeyboardEvent) => {
+  //     if ((e.metaKey || e.ctrlKey) && e.key === "s") {
+  //       e.preventDefault();
+  //     }
+
+  //     if ((e.metaKey || e.ctrlKey) && (e.key === "Enter" || e.key == "'")) {
+  //       e.preventDefault();
+  //       handleCodeRun();
+  //     }
+  //   };
+
+  //   document.addEventListener("keydown", handleKeyDown);
+  // }, []);
+
+  // const handleEditorChange = (value: string | undefined) => {
+  //   setCode(value || "");
+  // };
+
+  const handleEditorMount: OnMount = (editor) => {
+    const yText = ydoc.getText("monaco");
+    const model = editor.getModel();
+
+    // console.log(model);
+    if (model) {
+      new MonacoBinding(yText, model, new Set([editor]));
     }
-  }, [terminalRef]);
-
-  useEffect(() => {
-    setSocket(getSocket());
-  }, [getSocket()]);
-
-  useEffect(() => {
-    if (socket?.active && !isRemoteUpdate.current) {
-      const delayDebounce = setTimeout(() => {
-        try {
-          socket?.emit("room:edit", {
-            content: code,
-            lang: language,
-            roomId,
-          });
-        } catch (err) {
-          console.log(err);
-        }
-      }, 250);
-
-      return () => clearTimeout(delayDebounce);
-    }
-
-    isRemoteUpdate.current = false;
-  }, [code, language]);
-
-  useEffect(() => {
-    if (token) {
-      createSocket(token);
-    }
-  }, [token]);
-
-  useEffect(() => {
-    if (!socket?.active) return;
-
-    socket?.emit("room:join", roomId);
-
-    socket?.on("room:init", (data: any) => {
-      isRemoteUpdate.current = true;
-      setCode(data.content);
-      setLanguage(data.lang);
-    });
-
-    socket?.on("room:update", (data: any) => {
-      isRemoteUpdate.current = true;
-      setCode(data.content);
-      setLanguage(data.lang);
-    });
-
-    socket?.on("run-code:output", (data: any) => {
-      terminalInstance.current?.writeln(data);
-    });
-
-    return () => {
-      socket?.off("room:init");
-      socket?.off("room:update");
-      socket?.off("run-code:output");
-      socket?.emit("room:leave", roomId);
-      // socket?.disconnect();
-    };
-  }, [roomId, socket, isOnline, socket?.active]);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "s") {
-        e.preventDefault();
-      }
-
-      if ((e.metaKey || e.ctrlKey) && (e.key === "Enter" || e.key == "'")) {
-        e.preventDefault();
-        handleCodeRun();
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-  }, []);
-
-  const handleEditorChange = (value: string | undefined) => {
-    setCode(value || "");
   };
 
   const handleCodeValidation = (markers: monaco.editor.IMarker[]) => {
@@ -138,20 +152,20 @@ const TextEditor = () => {
     });
   };
 
-  const handleCodeRun = async () => {
-    try {
-      await authRequest.post("/run-code", {
-        roomId,
-      });
-    } catch (err) {
-      console.log(err);
-    }
-  };
+  // const handleCodeRun = async () => {
+  //   try {
+  //     await authRequest.post("/run-code", {
+  //       roomId,
+  //     });
+  //   } catch (err) {
+  //     console.log(err);
+  //   }
+  // };
 
   return (
     <div className="w-full h-screen flex flex-col gap-2">
       <div className="flex justify-between h-fit">
-        <select
+        {/* <select
           onChange={(e) => {
             setLanguage(e.target.value);
           }}
@@ -163,22 +177,26 @@ const TextEditor = () => {
               {lang}
             </option>
           ))}
-        </select>
-        <button className="btn btn-ghost" onClick={handleCodeRun}>
+        </select> */}
+        <button
+          className="btn btn-ghost"
+          // onClick={handleCodeRun}
+        >
           Run
         </button>
       </div>
       <Editor
         className="flex-1"
         language={language}
-        value={code}
+        // value={code}
         theme="vs-dark"
-        onChange={handleEditorChange}
+        onMount={handleEditorMount}
+        // onChange={handleEditorChange}
         onValidate={handleCodeValidation}
       />
-      <div className="h-2/12 p-1">
+      {/* <div className="h-2/12 p-1">
         <div ref={terminalRef} style={{ height: "100%", width: "100%" }}></div>
-      </div>
+      </div> */}
     </div>
   );
 };
