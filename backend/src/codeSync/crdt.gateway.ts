@@ -9,17 +9,54 @@ import { MemoryStoreService } from 'src/memory-store/memory-store.service';
 import { Socket } from 'socket.io';
 
 import * as Y from 'yjs';
+import { JwtService } from '@nestjs/jwt';
+import { RoomsService } from 'src/rooms/rooms.service';
+import { snapshotFromYDoc } from 'src/utils/codeSnapshot';
 
 @Injectable()
 @WebSocketGateway(3003, { cors: true })
 export class CRDTGateway implements OnGatewayConnection, OnGatewayDisconnect {
-  constructor(private inMemoryStore: MemoryStoreService) {}
+  constructor(
+    private jwtService: JwtService,
+    private roomService: RoomsService,
+    private inMemoryStore: MemoryStoreService,
+  ) {}
 
-  handleConnection(client: any, ...args: any[]) {
-    // console.log('User Connected:', client.id);
+  async handleConnection(client: any, ...args: any[]) {
+    try {
+      const user = await this.jwtService.verify(client.handshake.auth.token, {
+        secret: process.env.JWT_SECRET,
+      });
+
+      this.inMemoryStore.userIds.set(client.id, user._id);
+    } catch (err) {
+      client.disconnect();
+    }
   }
 
-  handleDisconnect(client: any) {}
+  async handleDisconnect(client: any) {
+    try {
+      this.inMemoryStore.userIds.delete(client.id);
+
+      for (const [roomId, room] of this.inMemoryStore.activeRooms.entries()) {
+        room.activeUsers = room.activeUsers.filter(
+          (socketId: string) => socketId !== client.id,
+        );
+
+        if (room.activeUsers.length == 0) {
+          await this.roomService.saveCodeSnapshot(
+            roomId,
+            snapshotFromYDoc(room),
+          );
+          this.inMemoryStore.activeRooms.delete(roomId);
+        } else {
+          this.inMemoryStore.activeRooms.set(roomId, room);
+        }
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  }
 
   @SubscribeMessage('room:join')
   handleRoomJoin(client: Socket, roomId: string) {

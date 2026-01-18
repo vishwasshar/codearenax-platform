@@ -8,8 +8,8 @@ export class Room {
   @Prop({ required: true })
   name: string;
 
-  @Prop({ required: true, default: '//Start writing your code from here' })
-  content: string;
+  @Prop({ required: false })
+  content: Buffer;
 
   @Prop({ required: true, enum: LangTypes, default: LangTypes.JS })
   lang: LangTypes;
