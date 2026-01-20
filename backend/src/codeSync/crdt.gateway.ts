@@ -51,6 +51,7 @@ export class CRDTGateway implements OnGatewayConnection, OnGatewayDisconnect {
             snapshotFromYDoc(room),
           );
           this.inMemoryStore.activeRooms.delete(roomId);
+          this.inMemoryStore.crdtRooms.delete(roomId);
         } else {
           this.inMemoryStore.activeRooms.set(roomId, room);
         }
