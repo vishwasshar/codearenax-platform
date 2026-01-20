@@ -59,22 +59,48 @@ export class CRDTGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('room:join')
-  handleRoomJoin(client: Socket, roomId: string) {
-    if (!this.inMemoryStore.crdtRooms.has(roomId)) {
-      this.inMemoryStore.crdtRooms.set(roomId, new Y.Doc());
+  async handleRoomJoin(client: Socket, roomId: string) {
+    try {
+      let room: any;
+
+      if (this.inMemoryStore.activeRooms.has(roomId)) {
+        room = this.inMemoryStore.activeRooms.get(roomId);
+        room.content = Y.encodeStateAsUpdate(
+          this.inMemoryStore.crdtRooms.get(roomId) || new Y.Doc(),
+        );
+      } else {
+        room = await this.roomService.getRoomById(roomId);
+
+        room.activeUsers = [];
+        room.isDirty = false;
+        let ydoc = new Y.Doc(room.content);
+
+        room.content = Y.encodeStateAsUpdate(ydoc);
+
+        this.inMemoryStore.crdtRooms.set(roomId, ydoc);
+      }
+
+      if (
+        room?.accessList?.some(
+          (user: any) => user.user == this.inMemoryStore.userIds.get(client.id),
+        )
+      ) {
+        room.activeUsers.push(client.id);
+
+        this.inMemoryStore.activeRooms.set(roomId, room);
+
+        client.join(roomId);
+
+        client.emit('room:code-edit', room.content);
+        client.emit('room:lang-change', room.lang);
+      } else {
+        client.emit('room:error', 'Not Accessible');
+      }
+    } catch (err) {
+      client.emit('room:error', 'Failed to Join Room');
     }
-
-    const room = this.inMemoryStore.crdtRooms.get(roomId);
-
-    if (!room) return;
-
-    client.join(roomId);
-
-    const state = Y.encodeStateAsUpdate(room);
-    client.emit('room:edit', state);
   }
 
-  private count = 0;
   @SubscribeMessage('room:edit')
   updateRoom(client: Socket, data: { roomId: string; update: Number[] }) {
     const { roomId, update } = data;
@@ -83,8 +109,6 @@ export class CRDTGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     const updateBuffer = Uint8Array.from(update);
     Y.applyUpdate(room, updateBuffer);
-
-    console.log('update', this.count++, roomId, client.id);
 
     client.to(roomId).emit('room:edit', updateBuffer);
   }
