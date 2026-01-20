@@ -12,6 +12,7 @@ import * as Y from 'yjs';
 import { JwtService } from '@nestjs/jwt';
 import { RoomsService } from 'src/rooms/rooms.service';
 import { snapshotFromYDoc } from 'src/utils/codeSnapshot';
+import { AccessRole } from 'src/common/enums/access-role.enum';
 
 @Injectable()
 @WebSocketGateway(3003, { cors: true })
@@ -104,12 +105,30 @@ export class CRDTGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('room:edit')
   updateRoom(client: Socket, data: { roomId: string; update: Number[] }) {
     const { roomId, update } = data;
+
+    const roomDetails = this.inMemoryStore.activeRooms.get(roomId);
     const room = this.inMemoryStore.crdtRooms.get(roomId);
-    if (!room) return;
+
+    const userId = this.inMemoryStore.userIds.get(client.id);
+
+    if (
+      !room ||
+      !roomDetails?.accessList?.some(
+        (user: any) =>
+          user.user == userId &&
+          (user.role == AccessRole.OWNER || user.role == AccessRole.EDITOR),
+      )
+    )
+      return;
+
+    if (!roomDetails.isDirty) {
+      roomDetails.isDirty = true;
+      this.inMemoryStore.activeRooms.set(roomId, roomDetails);
+    }
 
     const updateBuffer = Uint8Array.from(update);
     Y.applyUpdate(room, updateBuffer);
 
-    client.to(roomId).emit('room:edit', updateBuffer);
+    client.to(roomId).emit('room:code-edit', updateBuffer);
   }
 }
