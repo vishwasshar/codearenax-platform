@@ -13,6 +13,7 @@ import { JwtService } from '@nestjs/jwt';
 import { RoomsService } from 'src/rooms/rooms.service';
 import { snapshotFromYDoc } from 'src/utils/codeSnapshot';
 import { AccessRole } from 'src/common/enums/access-role.enum';
+import { LangTypes } from 'src/common/enums';
 
 @Injectable()
 @WebSocketGateway(3003, { cors: true })
@@ -130,5 +131,35 @@ export class CRDTGateway implements OnGatewayConnection, OnGatewayDisconnect {
     Y.applyUpdate(room, updateBuffer);
 
     client.to(roomId).emit('room:code-edit', updateBuffer);
+  }
+
+  @SubscribeMessage('room:lang-change')
+  async updateRoomLang(
+    client: Socket,
+    data: { roomId: string; lang: LangTypes },
+  ) {
+    const { roomId, lang } = data;
+
+    const roomDetails = this.inMemoryStore.activeRooms.get(roomId);
+
+    const userId = this.inMemoryStore.userIds.get(client.id);
+
+    if (
+      !(
+        roomDetails &&
+        roomDetails?.accessList?.some(
+          (user: any) =>
+            user.user == userId &&
+            (user.role == AccessRole.OWNER || user.role == AccessRole.EDITOR),
+        )
+      )
+    )
+      return;
+
+    roomDetails.lang = lang;
+    this.inMemoryStore.activeRooms.set(roomId, roomDetails);
+
+    await this.roomService.updateRoom(roomId, { lang });
+    client.to(roomId).emit('room:lang-change', lang);
   }
 }
