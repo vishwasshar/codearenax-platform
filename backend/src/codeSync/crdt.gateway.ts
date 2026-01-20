@@ -104,6 +104,23 @@ export class CRDTGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  @SubscribeMessage('room:leave')
+  async leaveRoom(client: Socket, roomId: string) {
+    let room = this.inMemoryStore.activeRooms.get(roomId);
+
+    room.activeUsers = room.activeUsers.filter(
+      (socketId: string) => socketId != client.id,
+    );
+
+    if (room.activeUsers.length == 0) {
+      await this.roomService.saveCodeSnapshot(roomId, snapshotFromYDoc(room));
+      this.inMemoryStore.activeRooms.delete(roomId);
+      this.inMemoryStore.crdtRooms.delete(roomId);
+    } else {
+      this.inMemoryStore.activeRooms.set(roomId, room);
+    }
+  }
+
   @SubscribeMessage('room:edit')
   updateRoom(client: Socket, data: { roomId: string; update: Number[] }) {
     const { roomId, update } = data;
