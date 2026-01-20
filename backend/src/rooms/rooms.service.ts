@@ -27,7 +27,7 @@ export class RoomsService {
     return newRoom;
   }
 
-  async saveCodeSnapshot(id: string, updatedBuffer: Buffer) {
+  async saveCodeSnapshot(id: string, updatedBuffer: Uint8Array) {
     return await this.roomModel.findByIdAndUpdate(
       id,
       { content: updatedBuffer },
