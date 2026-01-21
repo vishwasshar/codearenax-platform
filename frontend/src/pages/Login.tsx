@@ -45,10 +45,6 @@ export const Login = () => {
     flow: "auth-code",
   });
 
-  useEffect(() => {
-    console.log(user);
-  }, [user]);
-
   return (
     <div className="hero bg-base-200 min-h-screen">
       <div className="hero-content flex-col lg:flex-row-reverse w-full h-full gap-20">

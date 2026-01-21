@@ -11,11 +11,11 @@ export class RoomsService {
   constructor(@InjectModel(Room.name) private roomModel: Model<Room>) {}
 
   async getAllRooms() {
-    return await this.roomModel.find();
+    return await this.roomModel.find().lean();
   }
 
   async getRoomById(id: string) {
-    return await this.roomModel.findById(id);
+    return await this.roomModel.findById(id).lean();
   }
 
   async createNewRoom(createRoom: CreateRoom, userId: string) {
@@ -25,6 +25,16 @@ export class RoomsService {
     });
 
     return newRoom;
+  }
+
+  async saveCodeSnapshot(id: string, updatedContent: string) {
+    return await this.roomModel.findByIdAndUpdate(
+      id,
+      { content: updatedContent },
+      {
+        new: true,
+      },
+    );
   }
 
   async updateRoom(id: string, updateRoom: UpdateRoom) {

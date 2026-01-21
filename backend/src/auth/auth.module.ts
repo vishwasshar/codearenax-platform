@@ -11,11 +11,13 @@ import { User, UserSchema } from 'src/schemas/user.schema';
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
-    PassportModule,
+
     JwtModule.register({
       secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '1d' },
     }),
+
+    PassportModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, LocalStrategy, JWTStrategy],

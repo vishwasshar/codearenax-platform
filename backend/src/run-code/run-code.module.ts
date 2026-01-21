@@ -9,6 +9,10 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Room, RoomSchema } from 'src/schemas/room.schema';
 
 @Module({
+  imports: [
+    MongooseModule.forFeature([{ name: Room.name, schema: RoomSchema }]),
+  ],
+  controllers: [RunCodeController],
   providers: [
     RunCodeService,
     MemoryStoreService,
@@ -16,9 +20,5 @@ import { Room, RoomSchema } from 'src/schemas/room.schema';
     JwtService,
     RoomsService,
   ],
-  imports: [
-    MongooseModule.forFeature([{ name: Room.name, schema: RoomSchema }]),
-  ],
-  controllers: [RunCodeController],
 })
 export class RunCodeModule {}

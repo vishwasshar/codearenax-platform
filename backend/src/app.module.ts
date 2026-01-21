@@ -12,18 +12,22 @@ import { MemoryStoreModule } from './memory-store/memory-store.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({isGlobal:true}),
-    UsersModule, 
-    CodeSyncModule, 
+    ConfigModule.forRoot({ isGlobal: true }),
 
     MongooseModule.forRootAsync({
-      imports:[ConfigModule],
-      inject:[ConfigService],
-      useFactory:(configService:ConfigService)=>({
-        uri: configService.get<string>('MONGOOSE_URI',{infer:true})
-      })
-    }), RoomsModule, AuthModule, RunCodeModule, MemoryStoreModule
-    
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        uri: configService.get<string>('MONGOOSE_URI', { infer: true }),
+      }),
+    }),
+
+    UsersModule,
+    CodeSyncModule,
+    RoomsModule,
+    AuthModule,
+    RunCodeModule,
+    MemoryStoreModule,
   ],
   controllers: [AppController],
   providers: [AppService],

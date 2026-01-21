@@ -27,7 +27,7 @@ authRequest.interceptors.request.use(
 
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 authRequest.interceptors.response.use(
@@ -38,17 +38,16 @@ authRequest.interceptors.response.use(
     console.log(err);
     toast.error(err.message);
     throw new Error(err.message);
-  }
+  },
 );
 
 unAuthRequest.interceptors.response.use(
   (res: AxiosResponse<any>) => {
-    console.log(res);
     return res;
   },
   (err: AxiosError<any>) => {
     console.log(err);
     toast.error(err.message);
     throw new Error(err.message);
-  }
+  },
 );
