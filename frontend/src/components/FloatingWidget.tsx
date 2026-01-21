@@ -17,6 +17,11 @@ type Size = {
   height: number;
 };
 
+type ChatMessage = {
+  message: string;
+  sender: "you" | "other";
+};
+
 const FloatingWidget: React.FC<{ corner: Corner }> = ({ corner }) => {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: "chat-panel",
@@ -26,6 +31,17 @@ const FloatingWidget: React.FC<{ corner: Corner }> = ({ corner }) => {
     width: 400,
     height: 300,
   });
+
+  const [sampleData, setSampleData] = useState<ChatMessage[]>([
+    { message: "Hi", sender: "you" },
+    { message: "Hola", sender: "you" },
+    { message: "Hi", sender: "other" },
+    { message: "Como estas!", sender: "other" },
+    {
+      message: "This is the big message written by me to test responsiveness",
+      sender: "you",
+    },
+  ]);
 
   return (
     <div
@@ -63,7 +79,22 @@ const FloatingWidget: React.FC<{ corner: Corner }> = ({ corner }) => {
           }));
         }}
       >
-        <div className="chat-body">Body</div>
+        <div className="chat-body">
+          {sampleData.map(({ message, sender }) => {
+            let cls = `chat ${sender == "you" ? "chat-end" : "chat-start"}`;
+            return (
+              <div
+                key={message + sender}
+                className={
+                  cls
+                  // "chat chat-end"
+                }
+              >
+                <div className="chat-bubble">{message}</div>
+              </div>
+            );
+          })}
+        </div>
       </Resizable>
     </div>
   );
