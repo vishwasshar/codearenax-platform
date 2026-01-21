@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import Editor, { type OnMount } from "@monaco-editor/react";
 import * as monaco from "monaco-editor";
@@ -12,7 +12,16 @@ import { authRequest } from "../utils/axios.interceptor";
 import { useCRDTHook } from "../hooks/useCRDTHook";
 import { MonacoBinding } from "y-monaco";
 
+import "./textEditor.css";
+import FloatingWidget from "../components/FloatingWidget";
+import { DndContext, type DragEndEvent } from "@dnd-kit/core";
+
+import type { Corner } from "../commons/vars/corner-types";
+import { getNearestCorner } from "../utils/getNearestCorner";
+
 const TextEditor = () => {
+  const [corner, setCorner] = useState<Corner>("top-right");
+
   const {
     user: { token },
   } = useSelector((state: any) => state.user);
@@ -25,6 +34,7 @@ const TextEditor = () => {
 
   const terminalRef = useRef<HTMLDivElement | null>(null);
   const terminalInstance = useRef<Terminal | null>(null);
+  const editorChatContainer = useRef<HTMLDivElement>(null);
   const editorKey = useRef(0);
 
   useEffect(() => {
@@ -99,6 +109,17 @@ const TextEditor = () => {
     new MonacoBinding(yText, model, new Set([editor]));
   };
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    if (!editorChatContainer?.current) return;
+
+    const rect = editorChatContainer?.current?.getBoundingClientRect();
+
+    const x = rect.width / 2 + event.delta.x;
+    const y = rect.height / 2 + event.delta.y;
+
+    setCorner(getNearestCorner(x, y, rect));
+  };
+
   return !ydoc ? (
     <div className="w-full h-screen flex flex-col gap-2 justify-center">
       <h2 className="text-center text-2xl ">Loading...</h2>
@@ -123,14 +144,19 @@ const TextEditor = () => {
           Run
         </button>
       </div>
-      <Editor
-        key={editorKey.current}
-        className="flex-1"
-        language={language}
-        theme="vs-dark"
-        onMount={handleEditorMount}
-        onValidate={handleCodeValidation}
-      />
+      <div className="editor-chat-container" ref={editorChatContainer}>
+        <Editor
+          key={editorKey.current}
+          className="flex-1"
+          language={language}
+          theme="vs-dark"
+          onMount={handleEditorMount}
+          onValidate={handleCodeValidation}
+        />
+        <DndContext onDragEnd={handleDragEnd}>
+          <FloatingWidget corner={corner} />
+        </DndContext>
+      </div>
       <div className="h-2/12 p-1">
         <div
           key={editorKey.current}

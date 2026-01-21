@@ -1,0 +1,31 @@
+.editor-chat-container {
+  position: relative;
+  height: 100%;
+}
+
+.chat-panel {
+  position: absolute;
+  height: 500px;
+  width: 500px;
+  background: #111;
+  z-index: 1000;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  pointer-events: auto;
+}
+
+.chat-header {
+  height: 40px;
+  background: #1b1b1b;
+  padding: 10px;
+  text: center;
+  cursor: grab;
+}
+
+.chat-body {
+  flex: 1;
+  padding: 8px;
+  overflow-y: auto;
+}
