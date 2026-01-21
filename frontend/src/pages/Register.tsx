@@ -22,7 +22,6 @@ export const Register = () => {
     try {
       const res = await unAuthRequest.post("/users", formData);
 
-      console.log(res);
       if (res.status == 201) navigate("/login");
     } catch (err) {
       console.log(err);
