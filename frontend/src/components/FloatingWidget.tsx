@@ -1,6 +1,7 @@
 import { useDraggable } from "@dnd-kit/core";
-import React from "react";
+import React, { useState } from "react";
 import type { Corner } from "../commons/vars/corner-types";
+import { Resizable } from "re-resizable";
 
 const SNAP_OFFSET = 16;
 
@@ -11,9 +12,19 @@ const cornerStyles: Record<Corner, React.CSSProperties> = {
   "bottom-right": { bottom: SNAP_OFFSET, right: SNAP_OFFSET },
 };
 
+type Size = {
+  width: number;
+  height: number;
+};
+
 const FloatingWidget: React.FC<{ corner: Corner }> = ({ corner }) => {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: "chat-panel",
+  });
+
+  const [size, setSize] = useState<Size>({
+    width: 400,
+    height: 300,
   });
 
   return (
@@ -31,8 +42,29 @@ const FloatingWidget: React.FC<{ corner: Corner }> = ({ corner }) => {
       <div className="chat-header" {...listeners}>
         Header
       </div>
-      <div className="chat-body">Body</div>
-      <div></div>
+      <Resizable
+        size={size}
+        minHeight={400}
+        minWidth={200}
+        enable={{
+          top: true,
+          right: true,
+          bottom: true,
+          left: true,
+          topRight: true,
+          bottomRight: true,
+          bottomLeft: true,
+          topLeft: true,
+        }}
+        onResizeStop={(_, __, ___, delta) => {
+          setSize((sz) => ({
+            height: sz.height + delta.height,
+            width: sz.width + delta.width,
+          }));
+        }}
+      >
+        <div className="chat-body">Body</div>
+      </Resizable>
     </div>
   );
 };

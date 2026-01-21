@@ -5,8 +5,8 @@
 
 .chat-panel {
   position: absolute;
-  height: 500px;
-  width: 500px;
+  max-width: 50%;
+  max-height: 80%;
   background: #111;
   z-index: 1000;
   border-radius: 0.5rem;
@@ -28,4 +28,6 @@
   flex: 1;
   padding: 8px;
   overflow-y: auto;
+  height: 100%;
+  background: black;
 }
