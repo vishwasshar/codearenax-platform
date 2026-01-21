@@ -11,9 +11,10 @@ import { Socket } from 'socket.io';
 import * as Y from 'yjs';
 import { JwtService } from '@nestjs/jwt';
 import { RoomsService } from 'src/rooms/rooms.service';
-import { snapshotFromYDoc } from 'src/utils/codeSnapshot';
 import { AccessRole } from 'src/common/enums/access-role.enum';
 import { LangTypes } from 'src/common/enums';
+import { ydocToString } from 'src/utils/ydocToString';
+import { stringToYDoc } from 'src/utils/stringToYDoc';
 
 @Injectable()
 @WebSocketGateway(3003, { cors: true })
@@ -36,109 +37,122 @@ export class CRDTGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  async handleDisconnect(client: any) {
+  async handleDisconnect(client: Socket) {
     try {
       this.inMemoryStore.userIds.delete(client.id);
 
-      for (const [roomId, room] of this.inMemoryStore.activeRooms.entries()) {
-        room.activeUsers = room.activeUsers.filter(
-          (socketId: string) => socketId !== client.id,
+      for (const [
+        roomId,
+        roomDetails,
+      ] of this.inMemoryStore.activeRooms.entries()) {
+        if (!roomDetails.activeUsers.includes(client.id)) continue;
+
+        roomDetails.activeUsers = roomDetails.activeUsers.filter(
+          (id: string) => id !== client.id,
         );
 
-        if (room.activeUsers.length == 0) {
-          await this.roomService.saveCodeSnapshot(
-            roomId,
-            snapshotFromYDoc(room),
-          );
+        if (roomDetails?.activeUsers?.length === 0) {
+          const ydoc = this.inMemoryStore.crdtRooms.get(roomId);
+
+          if (ydoc) {
+            await this.roomService.saveCodeSnapshot(roomId, ydocToString(ydoc));
+          }
+
           this.inMemoryStore.activeRooms.delete(roomId);
           this.inMemoryStore.crdtRooms.delete(roomId);
         } else {
-          this.inMemoryStore.activeRooms.set(roomId, room);
+          this.inMemoryStore.activeRooms.set(roomId, roomDetails);
         }
       }
     } catch (err) {
-      console.log(err);
+      console.error('Disconnect error:', err);
     }
   }
 
   @SubscribeMessage('room:join')
   async handleRoomJoin(client: Socket, roomId: string) {
     try {
-      let room: any;
+      let roomDetails = this.inMemoryStore.activeRooms.get(roomId);
+      let ydoc: Y.Doc;
 
-      if (this.inMemoryStore.activeRooms.has(roomId)) {
-        room = this.inMemoryStore.activeRooms.get(roomId);
-        room.content = Y.encodeStateAsUpdate(
-          this.inMemoryStore.crdtRooms.get(roomId) || new Y.Doc(),
-        );
-      } else {
-        room = await this.roomService.getRoomById(roomId);
+      if (!roomDetails) {
+        roomDetails = await this.roomService.getRoomById(roomId);
 
-        room.activeUsers = [];
-        room.isDirty = false;
-        let ydoc = new Y.Doc(room.content);
+        if (!roomDetails) {
+          client.emit('room:error', 'Room not Found');
+          throw new Error('Room not found');
+        }
 
-        room.content = Y.encodeStateAsUpdate(ydoc);
+        roomDetails.activeUsers = [];
+        roomDetails.isDirty = false;
 
+        ydoc = stringToYDoc(roomDetails.content);
         this.inMemoryStore.crdtRooms.set(roomId, ydoc);
-      }
-
-      if (
-        room?.accessList?.some(
-          (user: any) => user.user == this.inMemoryStore.userIds.get(client.id),
-        )
-      ) {
-        room.activeUsers.push(client.id);
-
-        this.inMemoryStore.activeRooms.set(roomId, room);
-
-        client.join(roomId);
-
-        client.emit('room:code-edit', room.content);
-        client.emit('room:lang-change', room.lang);
+        this.inMemoryStore.activeRooms.set(roomId, roomDetails);
       } else {
-        client.emit('room:error', 'Not Accessible');
+        ydoc = this.inMemoryStore.crdtRooms.get(roomId)!;
       }
+
+      const userId = this.inMemoryStore.userIds.get(client.id);
+
+      const hasAccess = roomDetails.accessList?.some(
+        (u: any) => u?.user?.toString() === userId?.toString(),
+      );
+
+      if (!hasAccess) {
+        client.emit('room:error', 'Not Accessible');
+        return;
+      }
+
+      if (!roomDetails.activeUsers.includes(client.id)) {
+        roomDetails.activeUsers.push(client.id);
+      }
+
+      client.join(roomId);
+
+      client.emit('room:joined', Y.encodeStateAsUpdate(ydoc), roomDetails.lang);
     } catch (err) {
+      console.error('Join error:', err);
       client.emit('room:error', 'Failed to Join Room');
     }
   }
 
   @SubscribeMessage('room:leave')
   async leaveRoom(client: Socket, roomId: string) {
-    let room = this.inMemoryStore.activeRooms.get(roomId);
+    let roomDetails = this.inMemoryStore.activeRooms.get(roomId);
+    let room = this.inMemoryStore.crdtRooms.get(roomId);
 
-    room.activeUsers = room.activeUsers.filter(
+    roomDetails.activeUsers = roomDetails.activeUsers.filter(
       (socketId: string) => socketId != client.id,
     );
 
-    if (room.activeUsers.length == 0) {
-      await this.roomService.saveCodeSnapshot(roomId, snapshotFromYDoc(room));
+    if (roomDetails?.activeUsers?.length == 0) {
+      await this.roomService.saveCodeSnapshot(roomId, ydocToString(room));
       this.inMemoryStore.activeRooms.delete(roomId);
       this.inMemoryStore.crdtRooms.delete(roomId);
     } else {
-      this.inMemoryStore.activeRooms.set(roomId, room);
+      this.inMemoryStore.activeRooms.set(roomId, roomDetails);
     }
   }
 
-  @SubscribeMessage('room:edit')
-  updateRoom(client: Socket, data: { roomId: string; update: Number[] }) {
+  @SubscribeMessage('room:code-edit')
+  updateRoom(client: Socket, data: { roomId: string; update: number[] }) {
     const { roomId, update } = data;
 
     const roomDetails = this.inMemoryStore.activeRooms.get(roomId);
-    const room = this.inMemoryStore.crdtRooms.get(roomId);
-
+    const ydoc = this.inMemoryStore.crdtRooms.get(roomId);
     const userId = this.inMemoryStore.userIds.get(client.id);
 
-    if (
-      !room ||
-      !roomDetails?.accessList?.some(
-        (user: any) =>
-          user.user == userId &&
-          (user.role == AccessRole.OWNER || user.role == AccessRole.EDITOR),
-      )
-    )
-      return;
+    if (!roomDetails || !ydoc) return;
+    if (!roomDetails.activeUsers.includes(client.id)) return;
+
+    const hasEditAccess = roomDetails.accessList?.some(
+      (u: any) =>
+        u?.user?.toString() === userId?.toString() &&
+        [AccessRole.OWNER, AccessRole.EDITOR].includes(u.role),
+    );
+
+    if (!hasEditAccess) return;
 
     if (!roomDetails.isDirty) {
       roomDetails.isDirty = true;
@@ -146,9 +160,9 @@ export class CRDTGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     const updateBuffer = Uint8Array.from(update);
-    Y.applyUpdate(room, updateBuffer);
+    Y.applyUpdate(ydoc, updateBuffer);
 
-    client.to(roomId).emit('room:code-edit', updateBuffer);
+    client.to(roomId).emit('room:code-update', updateBuffer);
   }
 
   @SubscribeMessage('room:lang-change')
