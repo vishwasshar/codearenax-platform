@@ -1,9 +1,15 @@
 import { useDraggable } from "@dnd-kit/core";
-import React, { useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import type { Corner } from "../commons/vars/corner-types";
 import { Resizable } from "re-resizable";
 import { BsChatSquareText } from "react-icons/bs";
-import { IoClose } from "react-icons/io5";
+import { IoClose, IoSend } from "react-icons/io5";
 
 const SNAP_OFFSET = 16;
 
@@ -35,6 +41,8 @@ const FloatingWidget: React.FC<{ corner: Corner }> = ({ corner }) => {
     height: 300,
   });
 
+  const [newMessage, setNewMessage] = useState<string>("");
+
   const [sampleData, setSampleData] = useState<ChatMessage[]>([
     { message: "Hi", sender: "you" },
     { message: "Hola", sender: "you" },
@@ -45,6 +53,25 @@ const FloatingWidget: React.FC<{ corner: Corner }> = ({ corner }) => {
       sender: "you",
     },
   ]);
+
+  const chatBodyRef = useRef<HTMLDivElement | null>(null);
+
+  const handleFormSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!newMessage) return;
+
+    setSampleData((curr) => {
+      return [...curr, { message: newMessage, sender: "you" }];
+    });
+
+    setNewMessage("");
+  };
+
+  useEffect(() => {
+    if (!chatBodyRef.current) return;
+
+    chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
+  }, [sampleData]);
 
   return (
     <>
@@ -120,16 +147,34 @@ const FloatingWidget: React.FC<{ corner: Corner }> = ({ corner }) => {
             });
           }}
         >
-          <div className="chat-body">
-            {sampleData.map(({ message, sender }) => {
-              let cls = `chat ${sender == "you" ? "chat-end" : "chat-start"}`;
+          <div className="h-full flex flex-col bg-black">
+            <div className="chat-body" ref={chatBodyRef} style={{ flex: 1 }}>
+              {sampleData.map(({ message, sender }) => {
+                let cls = `chat ${sender == "you" ? "chat-end" : "chat-start"}`;
 
-              return (
-                <div key={message + sender} className={cls}>
-                  <div className="chat-bubble">{message}</div>
-                </div>
-              );
-            })}
+                return (
+                  <div key={message + sender} className={cls}>
+                    <div className="chat-bubble">{message}</div>
+                  </div>
+                );
+              })}
+            </div>
+            <form
+              className="message-form w-full flex justify-center items-center gap-2 py-2 px-4"
+              onSubmit={handleFormSubmit}
+            >
+              <input
+                type="text"
+                value={newMessage}
+                className="input outline-0 flex-1 border-0 focus:outline-0 focus:border-0 bg-[#1a1a1a] "
+                onChange={(e) => {
+                  setNewMessage(e.target.value);
+                }}
+              />
+              <button type="submit" className="btn btn-circle">
+                <IoSend size={15} />
+              </button>
+            </form>
           </div>
         </Resizable>
       </div>
