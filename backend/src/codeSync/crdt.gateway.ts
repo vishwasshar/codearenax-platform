@@ -122,6 +122,8 @@ export class CRDTGateway implements OnGatewayConnection, OnGatewayDisconnect {
     let roomDetails = this.inMemoryStore.activeRooms.get(roomId);
     let room = this.inMemoryStore.crdtRooms.get(roomId);
 
+    if (!roomDetails) return;
+
     roomDetails.activeUsers = roomDetails.activeUsers.filter(
       (socketId: string) => socketId != client.id,
     );
