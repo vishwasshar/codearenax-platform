@@ -70,7 +70,7 @@ const TextEditor = () => {
         window.removeEventListener("resize", () => {});
       };
     }
-  }, [terminalRef, editorKey.current]);
+  }, [terminalRef, editorKey.current, ydoc]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key === "s") {
