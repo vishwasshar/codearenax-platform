@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { CodeSyncGateway } from './codeSync.gateway';
 import { JwtService } from '@nestjs/jwt';
 import { RoomsService } from 'src/rooms/rooms.service';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -11,12 +10,6 @@ import { CRDTGateway } from './crdt.gateway';
   imports: [
     MongooseModule.forFeature([{ name: Room.name, schema: RoomSchema }]),
   ],
-  providers: [
-    CodeSyncGateway,
-    JwtService,
-    RoomsService,
-    MemoryStoreService,
-    CRDTGateway,
-  ],
+  providers: [JwtService, RoomsService, MemoryStoreService, CRDTGateway],
 })
-export class CodeSyncModule {}
+export class CRDTModule {}

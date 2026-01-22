@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
-import { CodeSyncModule } from './codeSync/codeSync.module';
+import { CRDTModule } from './crdt/crdt.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { RoomsModule } from './rooms/rooms.module';
@@ -23,7 +23,7 @@ import { MemoryStoreModule } from './memory-store/memory-store.module';
     }),
 
     UsersModule,
-    CodeSyncModule,
+    CRDTModule,
     RoomsModule,
     AuthModule,
     RunCodeModule,

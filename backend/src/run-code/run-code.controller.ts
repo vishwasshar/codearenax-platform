@@ -9,7 +9,7 @@ import {
 import { CodeSubmission } from './dtos/RunCode.dto';
 import { RunCodeService } from './run-code.service';
 import { MemoryStoreService } from 'src/memory-store/memory-store.service';
-import { CRDTGateway } from 'src/codeSync/crdt.gateway';
+import { CRDTGateway } from 'src/crdt/crdt.gateway';
 
 @Controller('run-code')
 export class RunCodeController {

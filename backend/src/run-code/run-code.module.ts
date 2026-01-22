@@ -2,11 +2,11 @@ import { Module } from '@nestjs/common';
 import { RunCodeService } from './run-code.service';
 import { RunCodeController } from './run-code.controller';
 import { MemoryStoreService } from 'src/memory-store/memory-store.service';
-import { CodeSyncGateway } from 'src/codeSync/codeSync.gateway';
 import { JwtService } from '@nestjs/jwt';
 import { RoomsService } from 'src/rooms/rooms.service';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Room, RoomSchema } from 'src/schemas/room.schema';
+import { CRDTGateway } from 'src/crdt/crdt.gateway';
 
 @Module({
   imports: [
@@ -16,7 +16,7 @@ import { Room, RoomSchema } from 'src/schemas/room.schema';
   providers: [
     RunCodeService,
     MemoryStoreService,
-    CodeSyncGateway,
+    CRDTGateway,
     JwtService,
     RoomsService,
   ],
