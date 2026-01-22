@@ -177,7 +177,7 @@ const TextEditor = () => {
         maxHeight={"80%"}
         minHeight={150}
         enable={{ bottom: true }}
-        onResize={(e, dir, ref) => {
+        onResize={() => {
           fitTerminal();
         }}
       >

@@ -1,11 +1,5 @@
 import { useDraggable } from "@dnd-kit/core";
-import React, {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type FormEvent,
-} from "react";
+import React, { useEffect, useRef, useState, type FormEvent } from "react";
 import type { Corner } from "../commons/vars/corner-types";
 import { Resizable } from "re-resizable";
 import { BsChatSquareText } from "react-icons/bs";
