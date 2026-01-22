@@ -24,6 +24,7 @@ import {
 
 import type { Corner } from "../commons/vars/corner-types";
 import { getNearestCorner } from "../utils/getNearestCorner";
+import { Resizable } from "re-resizable";
 
 const TextEditor = () => {
   const [corner, setCorner] = useState<Corner>("bottom-right");
@@ -39,6 +40,7 @@ const TextEditor = () => {
   );
 
   const terminalRef = useRef<HTMLDivElement | null>(null);
+  const fitAddonRef = useRef<FitAddon | null>(null);
   const terminalInstance = useRef<Terminal | null>(null);
   const editorChatContainer = useRef<HTMLDivElement>(null);
   const editorKey = useRef(0);
@@ -47,6 +49,8 @@ const TextEditor = () => {
     if (terminalRef.current) {
       const term = new Terminal({
         convertEol: true,
+        cursorBlink: true,
+        scrollback: 1000,
         fontSize: 14,
         theme: { background: "#1e1e1e" },
       });
@@ -58,6 +62,7 @@ const TextEditor = () => {
 
       term.write("Welcome to Code Arena X Terminal\n");
       terminalInstance.current = term;
+      fitAddonRef.current = fitAddOn;
       window.addEventListener("resize", () => fitAddOn?.fit());
 
       return () => {
@@ -134,6 +139,12 @@ const TextEditor = () => {
     }),
   );
 
+  const fitTerminal = () => {
+    requestAnimationFrame(() => {
+      fitAddonRef.current?.fit();
+    });
+  };
+
   return !ydoc ? (
     <div className="w-full h-screen flex flex-col gap-2 justify-center">
       <h2 className="text-center text-2xl ">Loading...</h2>
@@ -158,25 +169,34 @@ const TextEditor = () => {
           Run
         </button>
       </div>
-      <div className="editor-chat-container" ref={editorChatContainer}>
-        <Editor
-          key={editorKey.current}
-          className="flex-1"
-          language={language}
-          theme="vs-dark"
-          onMount={handleEditorMount}
-          onValidate={handleCodeValidation}
-        />
-        <DndContext onDragEnd={handleDragEnd} sensors={sensors}>
-          <FloatingWidget corner={corner} />
-        </DndContext>
-      </div>
-      <div className="h-2/12 p-1">
-        <div
-          key={editorKey.current}
-          ref={terminalRef}
-          style={{ height: "100%", width: "100%" }}
-        ></div>
+      <Resizable
+        defaultSize={{
+          height: "80%",
+          width: "100%",
+        }}
+        maxHeight={"80%"}
+        minHeight={150}
+        enable={{ bottom: true }}
+        onResize={(e, dir, ref) => {
+          fitTerminal();
+        }}
+      >
+        <div className="editor-chat-container" ref={editorChatContainer}>
+          <Editor
+            key={editorKey.current}
+            className="flex-1"
+            language={language}
+            theme="vs-dark"
+            onMount={handleEditorMount}
+            onValidate={handleCodeValidation}
+          />
+          <DndContext onDragEnd={handleDragEnd} sensors={sensors}>
+            <FloatingWidget corner={corner} />
+          </DndContext>
+        </div>
+      </Resizable>
+      <div className="p-1 h-[100%] overflow-auto" style={{ flex: 1 }}>
+        <div key={editorKey.current} ref={terminalRef} className="h-full"></div>
       </div>
     </div>
   );
