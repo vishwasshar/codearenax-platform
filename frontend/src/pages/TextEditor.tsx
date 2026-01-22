@@ -14,7 +14,13 @@ import { MonacoBinding } from "y-monaco";
 
 import "./textEditor.css";
 import FloatingWidget from "../components/FloatingWidget";
-import { DndContext, type DragEndEvent } from "@dnd-kit/core";
+import {
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
 
 import type { Corner } from "../commons/vars/corner-types";
 import { getNearestCorner } from "../utils/getNearestCorner";
@@ -120,6 +126,14 @@ const TextEditor = () => {
     setCorner(getNearestCorner(x, y, rect));
   };
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 15,
+      },
+    }),
+  );
+
   return !ydoc ? (
     <div className="w-full h-screen flex flex-col gap-2 justify-center">
       <h2 className="text-center text-2xl ">Loading...</h2>
@@ -153,7 +167,7 @@ const TextEditor = () => {
           onMount={handleEditorMount}
           onValidate={handleCodeValidation}
         />
-        <DndContext onDragEnd={handleDragEnd}>
+        <DndContext onDragEnd={handleDragEnd} sensors={sensors}>
           <FloatingWidget corner={corner} />
         </DndContext>
       </div>

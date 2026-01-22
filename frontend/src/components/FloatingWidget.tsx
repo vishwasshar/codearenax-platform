@@ -2,6 +2,8 @@ import { useDraggable } from "@dnd-kit/core";
 import React, { useState } from "react";
 import type { Corner } from "../commons/vars/corner-types";
 import { Resizable } from "re-resizable";
+import { BsChatSquareText } from "react-icons/bs";
+import { IoClose } from "react-icons/io5";
 
 const SNAP_OFFSET = 16;
 
@@ -23,6 +25,7 @@ type ChatMessage = {
 };
 
 const FloatingWidget: React.FC<{ corner: Corner }> = ({ corner }) => {
+  const [showWidget, setShowWidget] = useState<Boolean>(false);
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: "chat-panel",
   });
@@ -43,7 +46,26 @@ const FloatingWidget: React.FC<{ corner: Corner }> = ({ corner }) => {
     },
   ]);
 
-  return (
+  return !showWidget ? (
+    <button
+      className="btn btn-lg btn-circle bg-slate-700 border-none absolute z-50 shadow-2xl shadow-gray-700"
+      style={{
+        ...cornerStyles[corner],
+        transform: transform
+          ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
+          : undefined,
+      }}
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      onClick={(e) => {
+        e.preventDefault();
+        setShowWidget((curr) => !curr);
+      }}
+    >
+      <BsChatSquareText size={25} color="#fff" />
+    </button>
+  ) : (
     <div
       className="chat-panel"
       style={{
@@ -56,7 +78,15 @@ const FloatingWidget: React.FC<{ corner: Corner }> = ({ corner }) => {
       {...attributes}
     >
       <div className="chat-header" {...listeners}>
-        Room Chat
+        <h2>Room Chat</h2>
+        <button
+          className="btn btn-sm btn-ghost btn-circle"
+          onClick={() => {
+            setShowWidget((curr) => !curr);
+          }}
+        >
+          <IoClose size={16} />
+        </button>
       </div>
       <Resizable
         size={size}

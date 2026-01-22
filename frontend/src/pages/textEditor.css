@@ -17,11 +17,14 @@
 }
 
 .chat-header {
-  height: 40px;
   background: #1b1b1b;
   padding: 10px;
   text: center;
   cursor: grab;
+  font-size: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .chat-body {
