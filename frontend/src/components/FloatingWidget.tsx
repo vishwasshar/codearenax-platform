@@ -56,7 +56,7 @@ const FloatingWidget: React.FC<{ corner: Corner }> = ({ corner }) => {
       {...attributes}
     >
       <div className="chat-header" {...listeners}>
-        Header
+        Room Chat
       </div>
       <Resizable
         size={size}
@@ -72,11 +72,21 @@ const FloatingWidget: React.FC<{ corner: Corner }> = ({ corner }) => {
           bottomLeft: true,
           topLeft: true,
         }}
-        onResizeStop={(_, __, ___, delta) => {
-          setSize((sz) => ({
-            height: sz.height + delta.height,
-            width: sz.width + delta.width,
-          }));
+        onResizeStop={(_, __, dom, delta) => {
+          const maxWidth =
+            (dom.parentElement?.parentElement?.clientWidth || 0) * 0.5;
+          const maxHeight =
+            (dom.parentElement?.parentElement?.clientHeight || 0) * 0.7;
+
+          setSize((sz) => {
+            const newWidth = sz.width + delta.width;
+            const newHeight = sz.height + delta.height;
+
+            return {
+              height: newHeight > maxHeight ? maxHeight : newHeight,
+              width: newWidth > maxWidth ? maxWidth : newWidth,
+            };
+          });
         }}
       >
         <div className="chat-body">
