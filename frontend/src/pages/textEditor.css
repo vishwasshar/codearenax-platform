@@ -34,3 +34,21 @@
   height: 100%;
   background: black;
 }
+
+.widgetToggle,
+.chat-panel {
+  transform-origin: bottom right;
+  transition: opacity 500ms ease;
+}
+
+.hide {
+  transform: scale(0);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.show {
+  transform: scale(1);
+  opacity: 1;
+  pointer-events: auto;
+}

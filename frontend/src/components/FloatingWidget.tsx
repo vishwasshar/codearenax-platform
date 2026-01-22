@@ -46,97 +46,94 @@ const FloatingWidget: React.FC<{ corner: Corner }> = ({ corner }) => {
     },
   ]);
 
-  return !showWidget ? (
-    <button
-      className="btn btn-lg btn-circle bg-slate-700 border-none absolute z-50 shadow-2xl shadow-gray-700"
-      style={{
-        ...cornerStyles[corner],
-        transform: transform
-          ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
-          : undefined,
-      }}
-      ref={setNodeRef}
-      {...attributes}
-      {...listeners}
-      onClick={(e) => {
-        e.preventDefault();
-        setShowWidget((curr) => !curr);
-      }}
-    >
-      <BsChatSquareText size={25} color="#fff" />
-    </button>
-  ) : (
-    <div
-      className="chat-panel"
-      style={{
-        ...cornerStyles[corner],
-        transform: transform
-          ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
-          : undefined,
-      }}
-      ref={setNodeRef}
-      {...attributes}
-    >
-      <div className="chat-header" {...listeners}>
-        <h2>Room Chat</h2>
-        <button
-          className="btn btn-sm btn-ghost btn-circle"
-          onClick={() => {
-            setShowWidget((curr) => !curr);
-          }}
-        >
-          <IoClose size={16} />
-        </button>
-      </div>
-      <Resizable
-        size={size}
-        minHeight={400}
-        minWidth={200}
-        enable={{
-          top: true,
-          right: true,
-          bottom: true,
-          left: true,
-          topRight: true,
-          bottomRight: true,
-          bottomLeft: true,
-          topLeft: true,
+  return (
+    <>
+      <button
+        className={`btn btn-lg btn-circle bg-slate-700 border-none absolute z-50 shadow-2xl shadow-gray-700 widgetToggle ${showWidget ? "hide" : "show"}`}
+        style={{
+          ...cornerStyles[corner],
+          transform: transform
+            ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
+            : undefined,
         }}
-        onResizeStop={(_, __, dom, delta) => {
-          const maxWidth =
-            (dom.parentElement?.parentElement?.clientWidth || 0) * 0.5;
-          const maxHeight =
-            (dom.parentElement?.parentElement?.clientHeight || 0) * 0.7;
-
-          setSize((sz) => {
-            const newWidth = sz.width + delta.width;
-            const newHeight = sz.height + delta.height;
-
-            return {
-              height: newHeight > maxHeight ? maxHeight : newHeight,
-              width: newWidth > maxWidth ? maxWidth : newWidth,
-            };
-          });
+        ref={setNodeRef}
+        {...attributes}
+        {...listeners}
+        onClick={(e) => {
+          e.preventDefault();
+          setShowWidget((curr) => !curr);
         }}
       >
-        <div className="chat-body">
-          {sampleData.map(({ message, sender }) => {
-            let cls = `chat ${sender == "you" ? "chat-end" : "chat-start"}`;
-            return (
-              <div
-                key={message + sender}
-                className={
-                  cls
-                  // "chat chat-end"
-                }
-              >
-                <div className="chat-bubble">{message}</div>
-              </div>
-            );
-          })}
+        <BsChatSquareText size={25} color="#fff" />
+      </button>
+
+      <div
+        className={`chat-panel ${showWidget ? "show" : "hide"}`}
+        style={{
+          ...cornerStyles[corner],
+          transform: transform
+            ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
+            : undefined,
+        }}
+        ref={setNodeRef}
+        {...attributes}
+      >
+        <div className="chat-header" {...listeners}>
+          <h2>Room Chat</h2>
+          <button
+            className="btn btn-sm btn-ghost btn-circle"
+            onClick={() => {
+              setShowWidget((curr) => !curr);
+            }}
+          >
+            <IoClose size={16} />
+          </button>
         </div>
-      </Resizable>
-    </div>
+        <Resizable
+          size={size}
+          minHeight={400}
+          minWidth={200}
+          enable={{
+            top: true,
+            right: true,
+            bottom: true,
+            left: true,
+            topRight: true,
+            bottomRight: true,
+            bottomLeft: true,
+            topLeft: true,
+          }}
+          onResizeStop={(_, __, dom, delta) => {
+            const maxWidth =
+              (dom.parentElement?.parentElement?.clientWidth || 0) * 0.5;
+            const maxHeight =
+              (dom.parentElement?.parentElement?.clientHeight || 0) * 0.7;
+
+            setSize((sz) => {
+              const newWidth = sz.width + delta.width;
+              const newHeight = sz.height + delta.height;
+
+              return {
+                height: newHeight > maxHeight ? maxHeight : newHeight,
+                width: newWidth > maxWidth ? maxWidth : newWidth,
+              };
+            });
+          }}
+        >
+          <div className="chat-body">
+            {sampleData.map(({ message, sender }) => {
+              let cls = `chat ${sender == "you" ? "chat-end" : "chat-start"}`;
+
+              return (
+                <div key={message + sender} className={cls}>
+                  <div className="chat-bubble">{message}</div>
+                </div>
+              );
+            })}
+          </div>
+        </Resizable>
+      </div>
+    </>
   );
 };
 
