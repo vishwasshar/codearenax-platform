@@ -26,7 +26,7 @@ import type { Corner } from "../commons/vars/corner-types";
 import { getNearestCorner } from "../utils/getNearestCorner";
 
 const TextEditor = () => {
-  const [corner, setCorner] = useState<Corner>("top-right");
+  const [corner, setCorner] = useState<Corner>("bottom-right");
 
   const {
     user: { token },
