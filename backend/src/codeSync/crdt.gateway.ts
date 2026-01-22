@@ -4,9 +4,10 @@ import {
   OnGatewayDisconnect,
   SubscribeMessage,
   WebSocketGateway,
+  WebSocketServer,
 } from '@nestjs/websockets';
 import { MemoryStoreService } from 'src/memory-store/memory-store.service';
-import { Socket } from 'socket.io';
+import { Server, Socket } from 'socket.io';
 
 import * as Y from 'yjs';
 import { JwtService } from '@nestjs/jwt';
@@ -24,6 +25,8 @@ export class CRDTGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private roomService: RoomsService,
     private inMemoryStore: MemoryStoreService,
   ) {}
+
+  @WebSocketServer() server: Server;
 
   async handleConnection(client: any, ...args: any[]) {
     try {
@@ -195,5 +198,9 @@ export class CRDTGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     await this.roomService.updateRoom(roomId, { lang });
     client.to(roomId).emit('room:lang-change', lang);
+  }
+
+  handleCodeOuput(roomId: string, output: string) {
+    this.server.to(roomId).emit('room:output', output);
   }
 }
