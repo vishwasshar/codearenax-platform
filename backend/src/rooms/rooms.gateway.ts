@@ -10,6 +10,7 @@ import { Server, Socket } from 'socket.io';
 import { RoomsService } from 'src/rooms/rooms.service';
 import { LangTypes } from 'src/common/enums';
 import { CrdtService } from 'src/crdt/crdt.service';
+import { ChatService } from 'src/chat/chat.service';
 
 @Injectable()
 @WebSocketGateway(3003, { cors: true, namespace: '/room' })
@@ -17,6 +18,7 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private roomService: RoomsService,
     private crdtService: CrdtService,
+    private chatService: ChatService,
   ) {}
 
   @WebSocketServer() server: Server;
@@ -37,6 +39,14 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('room:leave')
   async leaveRoom(client: Socket, roomId: string) {
     this.roomService.leaveRoom(client, roomId);
+  }
+
+  @SubscribeMessage('chat:send-message')
+  sendMessage(
+    client: Socket,
+    data: { roomId: string; message: string; tempId: string },
+  ) {
+    this.chatService.sendMessage(client, data);
   }
 
   @SubscribeMessage('crdt:code-edit')

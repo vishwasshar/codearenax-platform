@@ -7,6 +7,7 @@ import { RoomsGateway } from './rooms.gateway';
 import { CrdtService } from 'src/crdt/crdt.service';
 import { JwtService } from '@nestjs/jwt';
 import { MemoryStoreService } from 'src/memory-store/memory-store.service';
+import { ChatService } from 'src/chat/chat.service';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { MemoryStoreService } from 'src/memory-store/memory-store.service';
     CrdtService,
     JwtService,
     MemoryStoreService,
+    ChatService,
   ],
 })
 export class RoomsModule {}

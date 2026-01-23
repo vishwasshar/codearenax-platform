@@ -190,7 +190,7 @@ const TextEditor = () => {
             onValidate={handleCodeValidation}
           />
           <DndContext onDragEnd={handleDragEnd} sensors={sensors}>
-            <FloatingWidget corner={corner} />
+            <FloatingWidget corner={corner} socket={socket} roomId={roomId} />
           </DndContext>
         </div>
       </Resizable>

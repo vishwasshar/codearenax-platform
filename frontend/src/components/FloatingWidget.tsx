@@ -4,6 +4,8 @@ import type { Corner } from "../commons/vars/corner-types";
 import { Resizable } from "re-resizable";
 import { BsChatSquareText } from "react-icons/bs";
 import { IoClose, IoSend } from "react-icons/io5";
+import type { Socket } from "socket.io-client";
+import { useChat } from "../hooks/useChat";
 
 const SNAP_OFFSET = 16;
 
@@ -19,12 +21,11 @@ type Size = {
   height: number;
 };
 
-type ChatMessage = {
-  message: string;
-  sender: "you" | "other";
-};
-
-const FloatingWidget: React.FC<{ corner: Corner }> = ({ corner }) => {
+const FloatingWidget: React.FC<{
+  corner: Corner;
+  socket: Socket;
+  roomId: string | undefined;
+}> = ({ corner, socket, roomId }) => {
   const [showWidget, setShowWidget] = useState<Boolean>(false);
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: "chat-panel",
@@ -37,16 +38,18 @@ const FloatingWidget: React.FC<{ corner: Corner }> = ({ corner }) => {
 
   const [newMessage, setNewMessage] = useState<string>("");
 
-  const [sampleData, setSampleData] = useState<ChatMessage[]>([
-    { message: "Hi", sender: "you" },
-    { message: "Hola", sender: "you" },
-    { message: "Hi", sender: "other" },
-    { message: "Como estas!", sender: "other" },
-    {
-      message: "This is the big message written by me to test responsiveness",
-      sender: "you",
-    },
-  ]);
+  // const [sampleData, setSampleData] = useState<ChatMessage[]>([
+  //   { message: "Hi", sender: "you" },
+  //   { message: "Hola", sender: "you" },
+  //   { message: "Hi", sender: "other" },
+  //   { message: "Como estas!", sender: "other" },
+  //   {
+  //     message: "This is the big message written by me to test responsiveness",
+  //     sender: "you",
+  //   },
+  // ]);
+
+  const { messages, sendMessage } = useChat(socket, roomId);
 
   const chatBodyRef = useRef<HTMLDivElement | null>(null);
 
@@ -54,9 +57,7 @@ const FloatingWidget: React.FC<{ corner: Corner }> = ({ corner }) => {
     e.preventDefault();
     if (!newMessage) return;
 
-    setSampleData((curr) => {
-      return [...curr, { message: newMessage, sender: "you" }];
-    });
+    sendMessage(newMessage);
 
     setNewMessage("");
   };
@@ -65,7 +66,7 @@ const FloatingWidget: React.FC<{ corner: Corner }> = ({ corner }) => {
     if (!chatBodyRef.current) return;
 
     chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
-  }, [sampleData]);
+  }, [messages]);
 
   return (
     <>
@@ -143,11 +144,11 @@ const FloatingWidget: React.FC<{ corner: Corner }> = ({ corner }) => {
         >
           <div className="h-full flex flex-col bg-black">
             <div className="chat-body" ref={chatBodyRef} style={{ flex: 1 }}>
-              {sampleData.map(({ message, sender }) => {
+              {messages?.map(({ id, message, sender }) => {
                 let cls = `chat ${sender == "you" ? "chat-end" : "chat-start"}`;
 
                 return (
-                  <div key={message + sender} className={cls}>
+                  <div key={id} className={cls}>
                     <div className="chat-bubble">{message}</div>
                   </div>
                 );

@@ -9,6 +9,7 @@ import { RoomsModule } from './rooms/rooms.module';
 import { AuthModule } from './auth/auth.module';
 import { RunCodeModule } from './run-code/run-code.module';
 import { MemoryStoreModule } from './memory-store/memory-store.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { MemoryStoreModule } from './memory-store/memory-store.module';
     AuthModule,
     RunCodeModule,
     MemoryStoreModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [AppService],

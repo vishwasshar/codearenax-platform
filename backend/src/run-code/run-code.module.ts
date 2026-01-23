@@ -8,6 +8,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Room, RoomSchema } from 'src/schemas/room.schema';
 import { RoomsGateway } from 'src/rooms/rooms.gateway';
 import { CrdtService } from 'src/crdt/crdt.service';
+import { ChatService } from 'src/chat/chat.service';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { CrdtService } from 'src/crdt/crdt.service';
     JwtService,
     RoomsService,
     CrdtService,
+    ChatService,
   ],
 })
 export class RunCodeModule {}
