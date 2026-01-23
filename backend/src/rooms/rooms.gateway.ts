@@ -12,7 +12,7 @@ import { LangTypes } from 'src/common/enums';
 import { CrdtService } from 'src/crdt/crdt.service';
 
 @Injectable()
-@WebSocketGateway(3003, { cors: true })
+@WebSocketGateway(3003, { cors: true, namespace: '/room' })
 export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private roomService: RoomsService,
