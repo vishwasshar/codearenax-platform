@@ -4,12 +4,12 @@ import { RoomsService } from 'src/rooms/rooms.service';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Room, RoomSchema } from 'src/schemas/room.schema';
 import { MemoryStoreService } from 'src/memory-store/memory-store.service';
-import { CRDTGateway } from './crdt.gateway';
+import { CrdtService } from './crdt.service';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Room.name, schema: RoomSchema }]),
   ],
-  providers: [JwtService, RoomsService, MemoryStoreService, CRDTGateway],
+  providers: [JwtService, RoomsService, MemoryStoreService, CrdtService],
 })
 export class CRDTModule {}

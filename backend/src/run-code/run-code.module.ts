@@ -6,7 +6,8 @@ import { JwtService } from '@nestjs/jwt';
 import { RoomsService } from 'src/rooms/rooms.service';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Room, RoomSchema } from 'src/schemas/room.schema';
-import { CRDTGateway } from 'src/crdt/crdt.gateway';
+import { RoomsGateway } from 'src/rooms/rooms.gateway';
+import { CrdtService } from 'src/crdt/crdt.service';
 
 @Module({
   imports: [
@@ -16,9 +17,10 @@ import { CRDTGateway } from 'src/crdt/crdt.gateway';
   providers: [
     RunCodeService,
     MemoryStoreService,
-    CRDTGateway,
+    RoomsGateway,
     JwtService,
     RoomsService,
+    CrdtService,
   ],
 })
 export class RunCodeModule {}
