@@ -9,7 +9,7 @@ import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "xterm-addon-fit";
 import "@xterm/xterm/css/xterm.css";
 import { authRequest } from "../utils/axios.interceptor";
-import { useCRDTHook } from "../hooks/useCRDTHook";
+import { useCRDT } from "../hooks/useCRDT";
 import { MonacoBinding } from "y-monaco";
 
 import "./textEditor.css";
@@ -25,6 +25,7 @@ import {
 import type { Corner } from "../commons/vars/corner-types";
 import { getNearestCorner } from "../utils/getNearestCorner";
 import { Resizable } from "re-resizable";
+import { useRoomSocket } from "../hooks/useRoomSocket";
 
 const TextEditor = () => {
   const [corner, setCorner] = useState<Corner>("bottom-right");
@@ -34,10 +35,8 @@ const TextEditor = () => {
   } = useSelector((state: any) => state.user);
 
   const { roomId } = useParams();
-  const { ydoc, language, handleLangChange } = useCRDTHook(
-    token || "",
-    roomId || "",
-  );
+  const socket = useRoomSocket(token, roomId || "");
+  const { ydoc, language, handleLangChange } = useCRDT(socket, roomId || "");
 
   const terminalRef = useRef<HTMLDivElement | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
