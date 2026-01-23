@@ -137,7 +137,7 @@ export class RoomsService {
 
       client.join(roomId);
 
-      client.emit('room:joined', Y.encodeStateAsUpdate(ydoc), roomDetails.lang);
+      client.emit('crdt:doc', Y.encodeStateAsUpdate(ydoc), roomDetails.lang);
     } catch (err) {
       console.error('Join error:', err);
       client.emit('room:error', 'Failed to Join Room');
