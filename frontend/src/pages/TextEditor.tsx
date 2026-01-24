@@ -13,7 +13,7 @@ import { useCRDT } from "../hooks/useCRDT";
 import { MonacoBinding } from "y-monaco";
 
 import "./textEditor.css";
-import FloatingWidget from "../components/FloatingWidget";
+import ChatWidget from "../components/ChatWidget";
 import {
   DndContext,
   PointerSensor,
@@ -190,7 +190,7 @@ const TextEditor = () => {
             onValidate={handleCodeValidation}
           />
           <DndContext onDragEnd={handleDragEnd} sensors={sensors}>
-            <FloatingWidget corner={corner} socket={socket} roomId={roomId} />
+            <ChatWidget corner={corner} socket={socket} roomId={roomId} />
           </DndContext>
         </div>
       </Resizable>

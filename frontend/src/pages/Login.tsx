@@ -1,14 +1,13 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { unAuthRequest } from "../utils/axios.interceptor";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { login } from "../redux/slices/user.slice";
 import { useGoogleLogin } from "@react-oauth/google";
 
 export const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const dispatch = useDispatch();
-  const { user } = useSelector((state: any) => state?.user);
   const navigate = useNavigate();
 
   const handleInput = (e: any) => {

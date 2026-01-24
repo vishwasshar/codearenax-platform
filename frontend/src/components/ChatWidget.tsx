@@ -21,7 +21,7 @@ type Size = {
   height: number;
 };
 
-const FloatingWidget: React.FC<{
+const ChatWidget: React.FC<{
   corner: Corner;
   socket: Socket;
   roomId: string | undefined;
@@ -177,4 +177,4 @@ const FloatingWidget: React.FC<{
   );
 };
 
-export default FloatingWidget;
+export default ChatWidget;
