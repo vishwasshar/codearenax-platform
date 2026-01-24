@@ -6,6 +6,7 @@ import { BsChatSquareText } from "react-icons/bs";
 import { IoClose, IoSend } from "react-icons/io5";
 import type { Socket } from "socket.io-client";
 import { useChat } from "../hooks/useChat";
+import { useSelector } from "react-redux";
 
 const SNAP_OFFSET = 16;
 
@@ -31,23 +32,14 @@ const ChatWidget: React.FC<{
     id: "chat-panel",
   });
 
+  const { userId } = useSelector((state: any) => state?.user);
+
   const [size, setSize] = useState<Size>({
     width: 400,
     height: 300,
   });
 
   const [newMessage, setNewMessage] = useState<string>("");
-
-  // const [sampleData, setSampleData] = useState<ChatMessage[]>([
-  //   { message: "Hi", sender: "you" },
-  //   { message: "Hola", sender: "you" },
-  //   { message: "Hi", sender: "other" },
-  //   { message: "Como estas!", sender: "other" },
-  //   {
-  //     message: "This is the big message written by me to test responsiveness",
-  //     sender: "you",
-  //   },
-  // ]);
 
   const { messages, sendMessage } = useChat(socket, roomId);
 
@@ -145,7 +137,7 @@ const ChatWidget: React.FC<{
           <div className="h-full flex flex-col bg-black">
             <div className="chat-body" ref={chatBodyRef} style={{ flex: 1 }}>
               {messages?.map(({ id, message, sender }) => {
-                let cls = `chat ${sender == "you" ? "chat-end" : "chat-start"}`;
+                let cls = `chat ${sender == userId ? "chat-end" : "chat-start"}`;
 
                 return (
                   <div key={id} className={cls}>
