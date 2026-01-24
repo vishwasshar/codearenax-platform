@@ -21,7 +21,6 @@ export const useChat = (socket: Socket, roomId: string | undefined) => {
       message: string;
       sender: string;
     }) => {
-      console.log(newMsg);
       setMessages((curr) => {
         return curr.map((msg) => {
           if (msg.id === newMsg.tempId) {
@@ -46,7 +45,6 @@ export const useChat = (socket: Socket, roomId: string | undefined) => {
     const tempId = crypto.randomUUID();
     socket.emit("chat:send-message", { tempId, roomId, message });
 
-    console.log("Sending message two time");
     setMessages((curr) => [...curr, { id: tempId, message, sender: "you" }]);
   };
   return { messages, sendMessage };

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { Socket } from 'socket.io';
 import { LangTypes } from 'src/common/enums';
 import { AccessRole } from 'src/common/enums/access-role.enum';
@@ -9,6 +9,7 @@ import * as Y from 'yjs';
 @Injectable()
 export class CrdtService {
   constructor(
+    @Inject(forwardRef(() => RoomsService))
     private roomService: RoomsService,
     private inMemoryStore: MemoryStoreService,
   ) {}

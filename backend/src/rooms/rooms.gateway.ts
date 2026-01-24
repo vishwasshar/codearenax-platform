@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import {
   OnGatewayConnection,
   OnGatewayDisconnect,
@@ -16,8 +16,9 @@ import { ChatService } from 'src/chat/chat.service';
 @WebSocketGateway(3003, { cors: true, namespace: '/room' })
 export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
-    private roomService: RoomsService,
+    @Inject(forwardRef(() => CrdtService))
     private crdtService: CrdtService,
+    private roomService: RoomsService,
     private chatService: ChatService,
   ) {}
 

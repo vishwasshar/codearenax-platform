@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ChatService } from './chat.service';
-import { MemoryStoreService } from 'src/memory-store/memory-store.service';
+import { MemoryStoreModule } from 'src/memory-store/memory-store.module';
 
 @Module({
-  providers: [ChatService, MemoryStoreService],
+  imports: [MemoryStoreModule],
+  providers: [ChatService],
+  exports: [ChatService],
 })
 export class ChatModule {}
