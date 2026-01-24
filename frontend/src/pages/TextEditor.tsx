@@ -30,9 +30,7 @@ import { useRoomSocket } from "../hooks/useRoomSocket";
 const TextEditor = () => {
   const [corner, setCorner] = useState<Corner>("bottom-right");
 
-  const {
-    user: { token },
-  } = useSelector((state: any) => state.user);
+  const { token } = useSelector((state: any) => state.user);
 
   const { roomId } = useParams();
   const socket = useRoomSocket(token, roomId || "");
