@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Room } from 'src/schemas/room.schema';
@@ -19,6 +19,17 @@ export class RoomsService {
     private inMemoryStore: MemoryStoreService,
     private jwtService: JwtService,
   ) {}
+
+  async authorizeUser(roomId: string, userId: string) {
+    const room = await this.roomModel
+      .findOne({ roomId })
+      .select('accessList')
+      .lean();
+
+    if (!room) throw new NotFoundException('Room Not Found');
+
+    return room?.accessList.some((usr: any) => usr.user === userId);
+  }
 
   async getAllRooms() {
     return await this.roomModel.find().lean();
@@ -59,7 +70,8 @@ export class RoomsService {
         secret: process.env.JWT_SECRET,
       });
 
-      this.inMemoryStore.userIds.set(client.id, user._id);
+      client.data.userId = user._id;
+      client.data.name = user.name;
     } catch (err) {
       client.disconnect();
     }
@@ -67,8 +79,6 @@ export class RoomsService {
 
   async handleDisconnect(client: Socket) {
     try {
-      this.inMemoryStore.userIds.delete(client.id);
-
       for (const [
         roomId,
         roomDetails,
@@ -120,7 +130,7 @@ export class RoomsService {
         ydoc = this.inMemoryStore.crdtRooms.get(roomId)!;
       }
 
-      const userId = this.inMemoryStore.userIds.get(client.id);
+      const userId = client.data.userId;
 
       const hasAccess = roomDetails.accessList?.some(
         (u: any) => u?.user?.toString() === userId?.toString(),
@@ -137,6 +147,8 @@ export class RoomsService {
 
       client.join(roomId);
 
+      client.data.roomId = roomId;
+
       client.emit('crdt:doc', Y.encodeStateAsUpdate(ydoc), roomDetails.lang);
     } catch (err) {
       console.error('Join error:', err);
@@ -144,7 +156,9 @@ export class RoomsService {
     }
   }
 
-  async leaveRoom(client: Socket, roomId: string) {
+  async leaveRoom(client: Socket) {
+    const roomId = client.data.roomId;
+
     let roomDetails = this.inMemoryStore.activeRooms.get(roomId);
     let room = this.inMemoryStore.crdtRooms.get(roomId);
 

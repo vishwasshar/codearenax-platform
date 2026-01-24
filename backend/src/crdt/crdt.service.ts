@@ -14,15 +14,17 @@ export class CrdtService {
     private inMemoryStore: MemoryStoreService,
   ) {}
 
-  updateRoom(client: Socket, data: { roomId: string; update: number[] }) {
-    const { roomId, update } = data;
+  updateRoom(client: Socket, data: { update: number[] }) {
+    const { update } = data;
+
+    const roomId = client.data.roomId;
 
     const roomDetails = this.inMemoryStore.activeRooms.get(roomId);
     const ydoc = this.inMemoryStore.crdtRooms.get(roomId);
-    const userId = this.inMemoryStore.userIds.get(client.id);
+    const userId = client.data.userId;
 
     if (!roomDetails || !ydoc) return;
-    if (!roomDetails.activeUsers.includes(client.id)) return;
+    if (!client.data.userId) return;
 
     const hasEditAccess = roomDetails.accessList?.some(
       (u: any) =>
@@ -43,15 +45,13 @@ export class CrdtService {
     client.to(roomId).emit('crdt:code-update', updateBuffer);
   }
 
-  async updateRoomLang(
-    client: Socket,
-    data: { roomId: string; lang: LangTypes },
-  ) {
-    const { roomId, lang } = data;
+  async updateRoomLang(client: Socket, data: { lang: LangTypes }) {
+    const { lang } = data;
+    const roomId = client.data.roomId;
 
     const roomDetails = this.inMemoryStore.activeRooms.get(roomId);
 
-    const userId = this.inMemoryStore.userIds.get(client.id);
+    const userId = client.data.userId;
 
     if (
       !(

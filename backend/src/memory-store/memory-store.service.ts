@@ -8,7 +8,4 @@ export class MemoryStoreService {
 
   // Store YJS Docs for rooms
   public crdtRooms: Map<string, Y.Doc> = new Map<string, Y.Doc>();
-
-  // Store detail of client socket id and user id (client.id, user._id)
-  public userIds: Map<string, string> = new Map<string, string>();
 }

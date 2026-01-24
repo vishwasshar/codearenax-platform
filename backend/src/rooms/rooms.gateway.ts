@@ -38,8 +38,8 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('room:leave')
-  async leaveRoom(client: Socket, roomId: string) {
-    this.roomService.leaveRoom(client, roomId);
+  async leaveRoom(client: Socket) {
+    this.roomService.leaveRoom(client);
   }
 
   @SubscribeMessage('chat:send-message')
@@ -56,10 +56,7 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('crdt:lang-change')
-  async updateRoomLang(
-    client: Socket,
-    data: { roomId: string; lang: LangTypes },
-  ) {
+  async updateRoomLang(client: Socket, data: { lang: LangTypes }) {
     this.crdtService.updateRoomLang(client, data);
   }
 
