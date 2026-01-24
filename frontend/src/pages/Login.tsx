@@ -21,7 +21,7 @@ export const Login = () => {
     e.preventDefault();
     try {
       const res = await unAuthRequest.post("auth/login", formData);
-      dispatch(login({ token: res.data }));
+      dispatch(login(res.data));
       navigate("/create-room");
     } catch (err) {}
   };
@@ -31,7 +31,7 @@ export const Login = () => {
       const res = await unAuthRequest.post("auth/google/code", {
         code: response.code,
       });
-      dispatch(login({ token: res.data }));
+      dispatch(login(res.data));
       navigate("/create-room");
     } catch (err) {}
   };

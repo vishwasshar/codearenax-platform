@@ -5,6 +5,7 @@ const initialState = {
   user: {
     name: "",
     token: "",
+    userId: "",
   },
 };
 
@@ -18,7 +19,7 @@ const userSlice = createSlice({
     },
     logout: (state) => {
       state.isLoggedIn = false;
-      state.user = { name: "", token: "" };
+      state.user = { name: "", token: "", userId: "" };
     },
   },
 });
