@@ -41,9 +41,30 @@ const ChatWidget: React.FC<{
 
   const [newMessage, setNewMessage] = useState<string>("");
 
-  const { messages, sendMessage } = useChat(socket, roomId);
+  const { messages, sendMessage, fetchRoomChats } = useChat(socket, roomId);
 
   const chatBodyRef = useRef<HTMLDivElement | null>(null);
+  const topSentinelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          fetchRoomChats();
+        }
+      },
+      {
+        root: chatBodyRef.current,
+        threshold: 1,
+      },
+    );
+
+    if (topSentinelRef.current) {
+      observer.observe(topSentinelRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
 
   const handleFormSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -136,11 +157,12 @@ const ChatWidget: React.FC<{
         >
           <div className="h-full flex flex-col bg-black">
             <div className="chat-body" ref={chatBodyRef} style={{ flex: 1 }}>
-              {messages?.map(({ id, message, sender }) => {
-                let cls = `chat ${sender == userId ? "chat-end" : "chat-start"}`;
+              <div ref={topSentinelRef} className="h-1" />
+              {messages?.map(({ _id, message, sender }) => {
+                let cls = `chat ${sender._id == userId ? "chat-end" : "chat-start"}`;
 
                 return (
-                  <div key={id} className={cls}>
+                  <div key={_id} className={cls}>
                     <div className="chat-bubble">{message}</div>
                   </div>
                 );
