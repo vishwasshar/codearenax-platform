@@ -15,19 +15,23 @@ export class ChatService {
     cursorCreatedAt?: string,
     cursorId?: string,
   ) {
-    const limit = 50;
+    const limit = 10;
 
     const baseFilter = { roomId };
 
-    const filter = cursorCreatedAt
-      ? {
-          ...baseFilter,
-          $or: [
-            { createdAt: new Date(cursorCreatedAt) },
-            { createdAt: new Date(cursorCreatedAt), $lt: { _id: cursorId } },
-          ],
-        }
-      : baseFilter;
+    const filter =
+      cursorCreatedAt && cursorId
+        ? {
+            ...baseFilter,
+            $or: [
+              { createdAt: { $lt: new Date(cursorCreatedAt) } },
+              {
+                createdAt: new Date(cursorCreatedAt),
+                _id: { $lt: new mongoose.Types.ObjectId(cursorId) },
+              },
+            ],
+          }
+        : baseFilter;
 
     const chats = await this.chatModel
       .find(filter)
@@ -43,8 +47,8 @@ export class ChatService {
       chats,
       nextCursor: hasNextPage
         ? {
-            cursorCreatedAt: chats[chats.length - 1]?.createdAt,
-            cursorId: chats[chats.length - 1]?._id,
+            cursorCreatedAt: chats[chats.length - 1].createdAt,
+            cursorId: chats[chats.length - 1]._id.toString(),
           }
         : null,
     };
@@ -60,7 +64,7 @@ export class ChatService {
     const newMessage = new this.chatModel({
       message,
       roomId,
-      sender: userId,
+      sender: { _id: userId, name: client.data.name },
     });
 
     await newMessage.save();
