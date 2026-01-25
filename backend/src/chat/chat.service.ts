@@ -33,7 +33,7 @@ export class ChatService {
       .find(filter)
       .sort({ createdAt: -1, _id: -1 })
       .limit(limit + 1)
-      .populate(['sender', 'name'])
+      .populate('sender', 'name')
       .lean<(Chat & { _id: mongoose.Types.ObjectId; createdAt: Date })[]>();
 
     const hasNextPage = chats.length > limit;

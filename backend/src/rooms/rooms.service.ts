@@ -22,13 +22,13 @@ export class RoomsService {
 
   async authorizeUser(roomId: string, userId: string) {
     const room = await this.roomModel
-      .findOne({ roomId })
+      .findById(roomId)
       .select('accessList')
       .lean();
 
     if (!room) throw new NotFoundException('Room Not Found');
 
-    return room?.accessList.some((usr: any) => usr.user === userId);
+    return room?.accessList.some((usr: any) => usr.user == userId);
   }
 
   async getAllRooms() {

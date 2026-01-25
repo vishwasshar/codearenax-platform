@@ -10,15 +10,13 @@ import { RoomsService } from './rooms.service';
 @Injectable()
 export class RoomsGuard implements CanActivate {
   constructor(private readonly roomService: RoomsService) {}
-  canActivate(
-    context: ExecutionContext,
-  ): boolean | Promise<boolean> | Observable<boolean> {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest();
 
-    if (!req.param.roomId) throw new BadRequestException('roomId Missing');
+    if (!req.params.roomId) throw new BadRequestException('roomId Missing');
 
-    const isAuthorized = this.roomService.authorizeUser(
-      req.param.roomId,
+    const isAuthorized = await this.roomService.authorizeUser(
+      req.params.roomId,
       req.user._id,
     );
 
