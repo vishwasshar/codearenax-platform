@@ -18,7 +18,7 @@ export const unAuthRequest = axios.create({
 authRequest.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const state = store.getState();
-    const token = state?.user?.user?.token;
+    const token = state?.user?.token;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     } else {
