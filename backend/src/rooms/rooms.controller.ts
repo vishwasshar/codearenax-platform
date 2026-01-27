@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   Req,
   UnauthorizedException,
@@ -130,5 +131,66 @@ export class RoomsController {
     this.roomGateway.handleRoomDelete(roomId);
 
     return { success: true };
+  }
+
+  @Post(':roomId/access')
+  @UseGuards(JWTGuard, RoomsGuard)
+  async addUserAccess(@Param('roomId') roomId: string, @Req() req: Request) {
+    if (!mongoose.Types.ObjectId.isValid(roomId))
+      throw new HttpException('Invalid Room Id', 400);
+
+    if (req?.roomRole != 'owner')
+      throw new UnauthorizedException('Unauthorized Operation');
+
+    const updatedRoom = await this.roomsService.addUserAccess(
+      roomId,
+      req.body.userId,
+      req.body.role,
+    );
+
+    return updatedRoom;
+  }
+
+  @Put(':roomId/access/:userId')
+  @UseGuards(JWTGuard, RoomsGuard)
+  async updateUserAccess(
+    @Param('roomId') roomId: string,
+    @Param('userId') userId: string,
+    @Req() req: Request,
+  ) {
+    if (!mongoose.Types.ObjectId.isValid(roomId))
+      throw new HttpException('Invalid Room Id', 400);
+
+    if (req?.roomRole != 'owner')
+      throw new UnauthorizedException('Unauthorized Operation');
+
+    const updatedRoom = await this.roomsService.updateUserAccess(
+      roomId,
+      req.body.userId,
+      req.body.role,
+    );
+
+    return updatedRoom;
+  }
+
+  @Delete(':roomId/access/:userId')
+  @UseGuards(JWTGuard, RoomsGuard)
+  async removeUserAccess(
+    @Param('roomId') roomId: string,
+    @Param('userId') userId: string,
+    @Req() req: Request,
+  ) {
+    if (!mongoose.Types.ObjectId.isValid(roomId))
+      throw new HttpException('Invalid Room Id', 400);
+
+    if (req?.roomRole != 'owner')
+      throw new UnauthorizedException('Unauthorized Operation');
+
+    const updatedRoom = await this.roomsService.removeUserAccess(
+      roomId,
+      req.body.userId,
+    );
+
+    return updatedRoom;
   }
 }

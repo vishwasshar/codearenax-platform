@@ -96,7 +96,46 @@ export class RoomsService {
     this.inMemoryStore.activeRooms.delete(roomId);
     this.inMemoryStore.crdtRooms.delete(roomId);
 
-    return { roomId };
+    return true;
+  }
+
+  async addUserAccess(roomId: string, userId: string, role: AccessRole) {
+    const newAccess = { user: userId, role };
+
+    const updatedRoom = this.roomModel.findByIdAndUpdate(
+      roomId,
+      {
+        $addToSet: { accessList: newAccess },
+      },
+      { new: true },
+    );
+    return updatedRoom;
+  }
+
+  async updateUserAccess(roomId: string, userId: string, newRole: AccessRole) {
+    const updatedRoom = this.roomModel.updateOne(
+      { _id: roomId, 'accessList.user': userId },
+      {
+        $set: {
+          'accessList.$.role': newRole,
+        },
+      },
+      { new: true },
+    );
+
+    return updatedRoom;
+  }
+
+  async removeUserAccess(roomId: string, userId: string) {
+    const updatedRoom = this.roomModel.findByIdAndUpdate(
+      roomId,
+      {
+        $pull: { accessList: { user: userId } },
+      },
+      { new: true },
+    );
+
+    return updatedRoom;
   }
 
   async handleConnection(client: any, ...args: any[]) {
