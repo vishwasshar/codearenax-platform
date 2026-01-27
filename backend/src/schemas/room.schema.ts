@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import mongoose from 'mongoose';
+import mongoose, { Document } from 'mongoose';
+import slugify from 'slugify';
 import { LangTypes } from 'src/common/enums';
 import { AccessRole } from 'src/common/enums/access-role.enum';
 
@@ -17,6 +18,9 @@ export class Room {
   @Prop({})
   output: string;
 
+  @Prop({ unique: true, required: true })
+  slug: string;
+
   @Prop([
     {
       user: { type: mongoose.Types.ObjectId, ref: 'User' },
@@ -30,3 +34,23 @@ export class Room {
 }
 
 export const RoomSchema = SchemaFactory.createForClass(Room);
+
+export type RoomDocument = Room & Document;
+
+RoomSchema.pre<RoomDocument>('save', async function (next) {
+  if (!this.isModified('name')) return next();
+
+  let baseSlug = slugify(this.name, { lower: true, strict: true });
+  let slug = baseSlug;
+  let count = 0;
+
+  const Model = this.constructor as mongoose.Model<RoomDocument>;
+
+  while (await Model.exists({ slug })) {
+    count++;
+    slug = `${baseSlug}-${count}`;
+  }
+
+  this.slug = slug;
+  next();
+});

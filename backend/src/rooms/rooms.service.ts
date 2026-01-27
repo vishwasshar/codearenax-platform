@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import mongoose, { Model, Types } from 'mongoose';
 import { Room } from 'src/schemas/room.schema';
 import { CreateRoom } from './dtos/CreateRoom.dto';
 import { UpdateRoom } from './dtos/UpdateRoom.dto';
@@ -65,11 +65,17 @@ export class RoomsService {
     return await this.roomModel.findById(id).lean();
   }
 
+  async getRoomBySlug(slug: string) {
+    return await this.roomModel.findOne({ slug }).lean();
+  }
+
   async createNewRoom(createRoom: CreateRoom, userId: string) {
-    const newRoom = await this.roomModel.create({
+    const newRoom = new this.roomModel({
       ...createRoom,
       accessList: { user: userId, role: AccessRole.OWNER },
     });
+
+    await newRoom.save();
 
     return newRoom;
   }
@@ -187,7 +193,12 @@ export class RoomsService {
       let ydoc: Y.Doc;
 
       if (!roomDetails) {
-        roomDetails = await this.getRoomById(roomId);
+        if (mongoose.Types.ObjectId.isValid(roomId))
+          roomDetails = await this.getRoomById(roomId);
+        else {
+          let slug = roomId;
+          roomDetails = await this.getRoomBySlug(slug);
+        }
 
         if (!roomDetails) {
           client.emit('room:error', 'Room not Found');
