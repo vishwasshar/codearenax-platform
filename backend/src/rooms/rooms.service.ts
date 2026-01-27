@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Room } from 'src/schemas/room.schema';
 import { CreateRoom } from './dtos/CreateRoom.dto';
 import { UpdateRoom } from './dtos/UpdateRoom.dto';
@@ -31,8 +31,34 @@ export class RoomsService {
     return room?.accessList.some((usr: any) => usr.user == userId);
   }
 
-  async getAllRooms() {
-    return await this.roomModel.find().lean();
+  async getAllRooms(userId: string) {
+    const rooms = await this.roomModel.aggregate([
+      { $match: { 'accessList.user': new Types.ObjectId(userId) } },
+      {
+        $addFields: {
+          myrole: {
+            $first: {
+              $filter: {
+                input: '$accessList',
+                as: 'a',
+                cond: { $eq: ['$$a.user', new Types.ObjectId(userId)] },
+              },
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          name: 1,
+          lang: 1,
+          role: '$myrole.role',
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      },
+    ]);
+
+    return rooms;
   }
 
   async getRoomById(id: string) {
@@ -62,6 +88,15 @@ export class RoomsService {
     return await this.roomModel.findByIdAndUpdate(id, updateRoom, {
       new: true,
     });
+  }
+
+  async deleteRoom(roomId: string) {
+    await this.roomModel.findByIdAndDelete(roomId);
+
+    this.inMemoryStore.activeRooms.delete(roomId);
+    this.inMemoryStore.crdtRooms.delete(roomId);
+
+    return { roomId };
   }
 
   async handleConnection(client: any, ...args: any[]) {

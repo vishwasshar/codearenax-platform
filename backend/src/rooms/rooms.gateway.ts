@@ -42,6 +42,12 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.roomService.leaveRoom(client);
   }
 
+  handleRoomDelete(roomId: string) {
+    setTimeout(() => {
+      this.server.in(roomId).disconnectSockets();
+    }, 0);
+  }
+
   @SubscribeMessage('chat:send-message')
   sendMessage(
     client: Socket,

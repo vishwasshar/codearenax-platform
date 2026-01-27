@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpException,
   Param,
@@ -20,17 +21,24 @@ import { JWTGuard } from 'src/auth/guards/jwt.guard';
 import { JwtPayload } from 'src/auth/dtos/jwt-payload.dto';
 import { ChatService } from 'src/chat/chat.service';
 import { RoomsGuard } from './rooms.guard';
+import { RoomsGateway } from './rooms.gateway';
 
 @Controller('rooms')
 export class RoomsController {
   constructor(
     private readonly roomsService: RoomsService,
     private readonly chatService: ChatService,
+    private readonly roomGateway: RoomsGateway,
   ) {}
 
   @Get()
-  getAllRooms() {
-    return this.roomsService.getAllRooms();
+  @UseGuards(JWTGuard)
+  async getRooms(@Req() req: Request) {
+    const user = req.user as JwtPayload;
+
+    const rooms = await this.roomsService.getAllRooms(user._id);
+
+    return rooms;
   }
 
   @Get(':roomId/chat')
@@ -71,7 +79,7 @@ export class RoomsController {
   }
 
   @Post()
-  @UseGuards(JWTGuard, RoomsGuard)
+  @UseGuards(JWTGuard)
   async createNewRoom(
     @Req() req: Request,
     @Body(new ValidationPipe()) createRoom: CreateRoom,
@@ -83,19 +91,32 @@ export class RoomsController {
     return room;
   }
 
-  @Patch(':id')
+  @Patch(':roomId')
   @UseGuards(JWTGuard, RoomsGuard)
   async updateRoom(
-    @Param('id') id: string,
+    @Param('roomId') roomId: string,
     @Body(new ValidationPipe()) updateRoom: UpdateRoom,
   ) {
-    if (!mongoose.Types.ObjectId.isValid(id))
-      throw new HttpException('Invalid Id', 400);
+    if (!mongoose.Types.ObjectId.isValid(roomId))
+      throw new HttpException('Invalid Room Id', 400);
 
-    const room = await this.roomsService.updateRoom(id, updateRoom);
+    const room = await this.roomsService.updateRoom(roomId, updateRoom);
 
     if (!room) throw new HttpException('Room Not Found', 404);
 
     return room;
+  }
+
+  @Delete(':roomId')
+  @UseGuards(JWTGuard, RoomsGuard)
+  async deleteRoom(@Param('roomId') roomId: string) {
+    if (!mongoose.Types.ObjectId.isValid(roomId))
+      throw new HttpException('Invalid Room Id', 400);
+
+    await this.roomsService.deleteRoom(roomId);
+
+    this.roomGateway.handleRoomDelete(roomId);
+
+    return { success: true };
   }
 }
