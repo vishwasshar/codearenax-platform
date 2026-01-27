@@ -28,7 +28,7 @@ export class RoomsService {
 
     if (!room) throw new NotFoundException('Room Not Found');
 
-    return room?.accessList.some((usr: any) => usr.user == userId);
+    return room?.accessList.find((usr: any) => usr.user == userId)?.role;
   }
 
   async getAllRooms(userId: string) {
