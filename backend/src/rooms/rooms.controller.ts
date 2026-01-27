@@ -166,7 +166,7 @@ export class RoomsController {
 
     const updatedRoom = await this.roomsService.updateUserAccess(
       roomId,
-      req.body.userId,
+      userId,
       req.body.role,
     );
 
@@ -188,7 +188,7 @@ export class RoomsController {
 
     const updatedRoom = await this.roomsService.removeUserAccess(
       roomId,
-      req.body.userId,
+      userId,
     );
 
     return updatedRoom;
