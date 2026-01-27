@@ -32,7 +32,13 @@ export class AuthService {
     const { password, ...payload } = user;
 
     if (comparePassword(autoDto.password, password)) {
-      return this.jwtService.sign(payload, { secret: process.env.JWT_SECRET });
+      return {
+        token: this.jwtService.sign(payload, {
+          secret: process.env.JWT_SECRET,
+        }),
+        name: payload.name,
+        userId: payload._id,
+      };
     }
     return null;
   }
@@ -65,6 +71,12 @@ export class AuthService {
       });
     const { password, ...payload } = user;
 
-    return this.jwtService.sign(payload, { secret: process.env.JWT_SECRET });
+    return {
+      token: this.jwtService.sign(payload, {
+        secret: process.env.JWT_SECRET,
+      }),
+      name: payload.name,
+      userId: payload._id,
+    };
   }
 }

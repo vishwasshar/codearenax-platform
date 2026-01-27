@@ -1,0 +1,55 @@
+.editor-chat-container {
+  position: relative;
+  height: 100%;
+}
+
+.chat-panel {
+  position: absolute;
+  max-width: 50%;
+  max-height: 80%;
+  background: #111;
+  z-index: 1000;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  pointer-events: auto;
+}
+
+.chat-header {
+  background: #1b1b1b;
+  padding: 10px;
+  text: center;
+  cursor: grab;
+  font-size: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.chat-body {
+  flex: 1;
+  padding: 8px;
+  overflow-y: auto;
+  height: 100%;
+  background: black;
+  scroll-behaviour: smooth;
+}
+
+.widgetToggle,
+.chat-panel {
+  transform-origin: bottom right;
+  transition: opacity 500ms ease;
+}
+
+.hide {
+  transform: scale(0);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.show {
+  transform: scale(1);
+  opacity: 1;
+  pointer-events: auto;
+}

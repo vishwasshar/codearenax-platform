@@ -9,14 +9,14 @@ import {
 import { CodeSubmission } from './dtos/RunCode.dto';
 import { RunCodeService } from './run-code.service';
 import { MemoryStoreService } from 'src/memory-store/memory-store.service';
-import { CodeSyncGateway } from 'src/codeSync/codeSync.gateway';
+import { RoomsGateway } from 'src/rooms/rooms.gateway';
 
 @Controller('run-code')
 export class RunCodeController {
   constructor(
     private readonly runCodeService: RunCodeService,
     private readonly memoryStore: MemoryStoreService,
-    private readonly codeSync: CodeSyncGateway,
+    private readonly roomsGateway: RoomsGateway,
   ) {}
 
   @Post()
@@ -31,7 +31,7 @@ export class RunCodeController {
     if (!res)
       throw new ServiceUnavailableException('Execution engine not working');
 
-    this.codeSync.handleCodeOuput(data.roomId, res.output);
+    this.roomsGateway.handleCodeOuput(data.roomId, res.output);
 
     return res;
   }
