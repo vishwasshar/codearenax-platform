@@ -9,6 +9,7 @@ import {
   Post,
   Query,
   Req,
+  UnauthorizedException,
   UseGuards,
   ValidationPipe,
 } from '@nestjs/common';
@@ -22,6 +23,7 @@ import { JwtPayload } from 'src/auth/dtos/jwt-payload.dto';
 import { ChatService } from 'src/chat/chat.service';
 import { RoomsGuard } from './rooms.guard';
 import { RoomsGateway } from './rooms.gateway';
+import { AccessRole } from 'src/common/enums/access-role.enum';
 
 @Controller('rooms')
 export class RoomsController {
@@ -65,13 +67,16 @@ export class RoomsController {
     return room;
   }
 
-  @Get(':id')
+  @Get(':roomId')
   @UseGuards(JWTGuard, RoomsGuard)
-  async getRoomById(@Param('id') id: string) {
-    if (!mongoose.Types.ObjectId.isValid(id))
-      throw new HttpException('Invalid Id', 400);
+  async getRoomById(@Param('roomId') roomId: string, @Req() req: Request) {
+    if (!mongoose.Types.ObjectId.isValid(roomId))
+      throw new HttpException('Invalid Room Id', 400);
 
-    const room = await this.roomsService.getRoomById(id);
+    if (req?.roomRole != AccessRole.EDITOR && req.roomRole != AccessRole.OWNER)
+      throw new UnauthorizedException('Unauthorized Operation');
+
+    const room = await this.roomsService.getRoomById(roomId);
 
     if (!room) throw new HttpException('Room Not Found', 404);
 
@@ -96,9 +101,13 @@ export class RoomsController {
   async updateRoom(
     @Param('roomId') roomId: string,
     @Body(new ValidationPipe()) updateRoom: UpdateRoom,
+    @Req() req: Request,
   ) {
     if (!mongoose.Types.ObjectId.isValid(roomId))
       throw new HttpException('Invalid Room Id', 400);
+
+    if (req?.roomRole != AccessRole.EDITOR && req.roomRole != AccessRole.OWNER)
+      throw new UnauthorizedException('Unauthorized Operation');
 
     const room = await this.roomsService.updateRoom(roomId, updateRoom);
 
@@ -109,9 +118,12 @@ export class RoomsController {
 
   @Delete(':roomId')
   @UseGuards(JWTGuard, RoomsGuard)
-  async deleteRoom(@Param('roomId') roomId: string) {
+  async deleteRoom(@Param('roomId') roomId: string, @Req() req: Request) {
     if (!mongoose.Types.ObjectId.isValid(roomId))
       throw new HttpException('Invalid Room Id', 400);
+
+    if (req?.roomRole != 'owner')
+      throw new UnauthorizedException('Unauthorized Operation');
 
     await this.roomsService.deleteRoom(roomId);
 
