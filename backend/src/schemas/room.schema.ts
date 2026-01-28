@@ -18,7 +18,7 @@ export class Room {
   @Prop({})
   output: string;
 
-  @Prop({ unique: true, required: true })
+  @Prop({ unique: true })
   slug: string;
 
   @Prop([
