@@ -37,6 +37,10 @@ export const RoomSchema = SchemaFactory.createForClass(Room);
 
 export type RoomDocument = Room & Document;
 
+RoomSchema.index({ slug: 1 }, { unique: true });
+
+RoomSchema.index({ 'accessList.user': 1 });
+
 RoomSchema.pre<RoomDocument>('save', async function (next) {
   if (!this.isModified('name')) return next();
 
