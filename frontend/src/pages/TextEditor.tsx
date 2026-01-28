@@ -34,7 +34,10 @@ const TextEditor = () => {
 
   const { roomId } = useParams();
   const socket = useRoomSocket(token, roomId || "");
-  const { ydoc, language, handleLangChange } = useCRDT(socket, roomId || "");
+  const { ydoc, language, handleLangChange, roomMongooseId } = useCRDT(
+    socket,
+    roomId || "",
+  );
 
   const terminalRef = useRef<HTMLDivElement | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -95,12 +98,12 @@ const TextEditor = () => {
   const handleCodeRun = useCallback(async () => {
     try {
       await authRequest.post("/run-code", {
-        roomId,
+        roomMongooseId,
       });
     } catch (err: any) {
       terminalInstance.current?.write(err.message + "\n");
     }
-  }, [authRequest, roomId]);
+  }, [authRequest, roomMongooseId]);
 
   useEffect(() => {
     if (ydoc) {
@@ -188,7 +191,11 @@ const TextEditor = () => {
             onValidate={handleCodeValidation}
           />
           <DndContext onDragEnd={handleDragEnd} sensors={sensors}>
-            <ChatWidget corner={corner} socket={socket} roomId={roomId} />
+            <ChatWidget
+              corner={corner}
+              socket={socket}
+              roomId={roomMongooseId}
+            />
           </DndContext>
         </div>
       </Resizable>

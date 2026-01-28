@@ -198,7 +198,10 @@ export class RoomsService {
         else {
           let slug = roomId;
           roomDetails = await this.getRoomBySlug(slug);
+          roomId = roomDetails._id.toString();
         }
+
+        this.inMemoryStore.roomSlug.set(roomDetails.slug, roomId);
 
         if (!roomDetails) {
           client.emit('room:error', 'Room not Found');
@@ -212,6 +215,10 @@ export class RoomsService {
         this.inMemoryStore.crdtRooms.set(roomId, ydoc);
         this.inMemoryStore.activeRooms.set(roomId, roomDetails);
       } else {
+        if (mongoose.Types.ObjectId.isValid(roomId)) {
+          let slug = roomId;
+          roomId = this.inMemoryStore.roomSlug.get(slug)!;
+        }
         ydoc = this.inMemoryStore.crdtRooms.get(roomId)!;
       }
 
@@ -234,7 +241,12 @@ export class RoomsService {
 
       client.data.roomId = roomId;
 
-      client.emit('crdt:doc', Y.encodeStateAsUpdate(ydoc), roomDetails.lang);
+      client.emit(
+        'crdt:doc',
+        Y.encodeStateAsUpdate(ydoc),
+        roomDetails.lang,
+        roomId,
+      );
     } catch (err) {
       console.error('Join error:', err);
       client.emit('room:error', 'Failed to Join Room');

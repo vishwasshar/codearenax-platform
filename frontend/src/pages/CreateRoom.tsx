@@ -23,7 +23,7 @@ export const CreateRoom = () => {
     try {
       const res = await authRequest.post("/rooms", formData);
       if (res.status == 201) {
-        navigate("/room/" + res.data._id);
+        navigate("/room/" + res.data.slug);
       }
     } catch (err) {
       console.log(err);

@@ -8,11 +8,16 @@ export const useCRDT = (socket: Socket, roomId: string) => {
   const [ydoc, setYdoc] = useState<Y.Doc | null>(null);
 
   const [language, setLanguage] = useState<string>("javascript");
+  const [roomMongooseId, setRoomMongooseId] = useState<string | undefined>();
 
   useEffect(() => {
     if (!socket) return;
 
-    const handleCRDTDoc = (update: number[], lang: string) => {
+    const handleCRDTDoc = (
+      update: number[],
+      lang: string,
+      mongooseId: string,
+    ) => {
       if (ydocRef.current) ydocRef.current?.destroy();
       ydocRef.current = new Y.Doc();
 
@@ -20,6 +25,7 @@ export const useCRDT = (socket: Socket, roomId: string) => {
 
       Y.applyUpdate(ydocRef.current, new Uint8Array(update));
       setLanguage(lang);
+      setRoomMongooseId(mongooseId);
     };
 
     const handleRemoteUpdate = (update: number[]) => {
@@ -64,5 +70,5 @@ export const useCRDT = (socket: Socket, roomId: string) => {
     [socket, roomId],
   );
 
-  return { ydoc, language, handleLangChange };
+  return { ydoc, language, handleLangChange, roomMongooseId };
 };
