@@ -49,6 +49,7 @@ export class RoomsService {
       },
       {
         $project: {
+          slug: 1,
           name: 1,
           lang: 1,
           role: '$myrole.role',
