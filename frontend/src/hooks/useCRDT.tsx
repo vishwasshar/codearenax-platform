@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Socket } from "socket.io-client";
 import * as Y from "yjs";
+import { authRequest } from "../utils/axios.interceptor";
+import { debounce } from "../utils/debounce";
 
 export const useCRDT = (socket: Socket) => {
   const ydocRef = useRef<Y.Doc | null>(null);
@@ -10,6 +12,21 @@ export const useCRDT = (socket: Socket) => {
   const [language, setLanguage] = useState<string>("javascript");
   const [roomMongooseId, setRoomMongooseId] = useState<string | undefined>();
   const [roomRole, setRoomRole] = useState<string | undefined>();
+  const [saving, setSaving] = useState<boolean>(false);
+
+  const handleCodeSave = async () => {
+    try {
+      setSaving(true);
+      await authRequest.put(`rooms/${roomMongooseId}/save`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const debouncedSnapshotSave = useMemo(
+    () => debounce(handleCodeSave, 30000),
+    [roomMongooseId],
+  );
 
   useEffect(() => {
     if (!socket) return;
@@ -58,6 +75,8 @@ export const useCRDT = (socket: Socket) => {
       socket.emit("crdt:code-edit", {
         update: Array.from(update),
       });
+
+      debouncedSnapshotSave();
     };
 
     ydoc?.on("update", handleLocalUpdate);
@@ -75,5 +94,13 @@ export const useCRDT = (socket: Socket) => {
     [socket, roomMongooseId],
   );
 
-  return { ydoc, language, handleLangChange, roomMongooseId, roomRole };
+  return {
+    ydoc,
+    language,
+    handleLangChange,
+    roomMongooseId,
+    roomRole,
+    handleCodeSave,
+    saving,
+  };
 };

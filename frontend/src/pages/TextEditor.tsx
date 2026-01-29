@@ -35,8 +35,15 @@ const TextEditor = () => {
 
   const { roomId } = useParams();
   const socket = useRoomSocket(token, roomId || "");
-  const { ydoc, language, handleLangChange, roomMongooseId, roomRole } =
-    useCRDT(socket);
+  const {
+    ydoc,
+    language,
+    handleLangChange,
+    roomMongooseId,
+    roomRole,
+    handleCodeSave,
+    saving,
+  } = useCRDT(socket);
 
   const terminalRef = useRef<HTMLDivElement | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -172,9 +179,10 @@ const TextEditor = () => {
           <div className="ms-auto flex gap-2">
             <button
               className="btn btn-sm bg-success/80"
-              onClick={handleCodeRun}
+              onClick={handleCodeSave}
+              disabled={saving}
             >
-              Save
+              {saving ? "Saving..." : "Save"}
             </button>
             <button className="btn btn-sm bg-accent/80" onClick={handleCodeRun}>
               Run

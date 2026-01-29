@@ -87,7 +87,10 @@ export class RoomsService {
     return newRoom;
   }
 
-  async saveCodeSnapshot(id: string, updatedContent: string) {
+  async saveCodeSnapshot(id: string) {
+    const ydoc = this.inMemoryStore.crdtRooms.get(id);
+    const updatedContent = ydocToString(ydoc);
+
     return await this.roomModel.findByIdAndUpdate(
       id,
       { content: updatedContent },
@@ -185,11 +188,7 @@ export class RoomsService {
         );
 
         if (roomDetails?.activeUsers?.length === 0) {
-          const ydoc = this.inMemoryStore.crdtRooms.get(roomId);
-
-          if (ydoc) {
-            await this.saveCodeSnapshot(roomId, ydocToString(ydoc));
-          }
+          await this.saveCodeSnapshot(roomId);
 
           this.inMemoryStore.activeRooms.delete(roomId);
           this.inMemoryStore.crdtRooms.delete(roomId);
@@ -280,7 +279,6 @@ export class RoomsService {
     const roomId = client.data.roomId;
 
     let roomDetails = this.inMemoryStore.activeRooms.get(roomId);
-    let room = this.inMemoryStore.crdtRooms.get(roomId);
 
     if (!roomDetails) return;
 
@@ -289,7 +287,7 @@ export class RoomsService {
     );
 
     if (roomDetails?.activeUsers?.length == 0) {
-      await this.saveCodeSnapshot(roomId, ydocToString(room));
+      await this.saveCodeSnapshot(roomId);
       this.inMemoryStore.activeRooms.delete(roomId);
       this.inMemoryStore.crdtRooms.delete(roomId);
     } else {

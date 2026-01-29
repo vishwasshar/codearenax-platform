@@ -5,7 +5,6 @@ import {
   Get,
   HttpException,
   Param,
-  Patch,
   Post,
   Put,
   Query,
@@ -131,6 +130,20 @@ export class RoomsController {
     this.roomGateway.handleRoomDelete(roomId);
 
     return { success: true };
+  }
+
+  @Put(':roomId/save')
+  @UseGuards(JWTGuard, RoomsGuard)
+  async saveCodeSnapshot(@Param('roomId') roomId: string, @Req() req: Request) {
+    if (!mongoose.Types.ObjectId.isValid(roomId))
+      throw new HttpException('Invalid Room Id', 400);
+
+    if (req?.roomRole != 'owner' && req?.roomRole != 'editor')
+      throw new UnauthorizedException('Unauthorized Operation');
+
+    const updatedRoom = await this.roomsService.saveCodeSnapshot(roomId);
+
+    return updatedRoom;
   }
 
   @Post(':roomId/access')
