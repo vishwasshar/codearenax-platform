@@ -22,7 +22,7 @@ export const Login = () => {
     try {
       const res = await unAuthRequest.post("auth/login", formData);
       dispatch(login(res.data));
-      navigate("/create-room");
+      navigate("/rooms");
     } catch (err) {}
   };
 
@@ -32,7 +32,7 @@ export const Login = () => {
         code: response.code,
       });
       dispatch(login(res.data));
-      navigate("/create-room");
+      navigate("/rooms");
     } catch (err) {}
   };
 

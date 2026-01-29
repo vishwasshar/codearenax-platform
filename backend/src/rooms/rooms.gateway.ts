@@ -24,22 +24,28 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @WebSocketServer() server: Server;
 
-  async handleConnection(client: any, ...args: any[]) {
+  handleConnection(client: any, ...args: any[]) {
     this.roomService.handleConnection(client, args);
   }
 
-  async handleDisconnect(client: Socket) {
+  handleDisconnect(client: Socket) {
     this.roomService.handleDisconnect(client);
   }
 
   @SubscribeMessage('room:join')
-  async handleRoomJoin(client: Socket, roomId: string) {
+  handleRoomJoin(client: Socket, roomId: string) {
     this.roomService.handleRoomJoin(client, roomId);
   }
 
   @SubscribeMessage('room:leave')
-  async leaveRoom(client: Socket) {
+  leaveRoom(client: Socket) {
     this.roomService.leaveRoom(client);
+  }
+
+  handleRoomDelete(roomId: string) {
+    setTimeout(() => {
+      this.server.in(roomId).disconnectSockets();
+    }, 0);
   }
 
   @SubscribeMessage('chat:send-message')
@@ -51,7 +57,7 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('crdt:code-edit')
-  updateRoom(client: Socket, data: { roomId: string; update: number[] }) {
+  updateRoom(client: Socket, data: { update: number[] }) {
     this.crdtService.updateRoom(client, data);
   }
 

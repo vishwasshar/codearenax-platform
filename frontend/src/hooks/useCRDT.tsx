@@ -1,18 +1,42 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Socket } from "socket.io-client";
 import * as Y from "yjs";
+import { authRequest } from "../utils/axios.interceptor";
+import { debounce } from "../utils/debounce";
 
-export const useCRDT = (socket: Socket, roomId: string) => {
+export const useCRDT = (socket: Socket) => {
   const ydocRef = useRef<Y.Doc | null>(null);
 
   const [ydoc, setYdoc] = useState<Y.Doc | null>(null);
 
   const [language, setLanguage] = useState<string>("javascript");
+  const [roomMongooseId, setRoomMongooseId] = useState<string | undefined>();
+  const [roomRole, setRoomRole] = useState<string | undefined>();
+  const [saving, setSaving] = useState<boolean>(false);
+
+  const handleCodeSave = async () => {
+    try {
+      setSaving(true);
+      await authRequest.put(`rooms/${roomMongooseId}/save`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const debouncedSnapshotSave = useMemo(
+    () => debounce(handleCodeSave, 30000),
+    [roomMongooseId],
+  );
 
   useEffect(() => {
     if (!socket) return;
 
-    const handleCRDTDoc = (update: number[], lang: string) => {
+    const handleCRDTDoc = (
+      update: number[],
+      lang: string,
+      mongooseId: string,
+      role: string,
+    ) => {
       if (ydocRef.current) ydocRef.current?.destroy();
       ydocRef.current = new Y.Doc();
 
@@ -20,6 +44,8 @@ export const useCRDT = (socket: Socket, roomId: string) => {
 
       Y.applyUpdate(ydocRef.current, new Uint8Array(update));
       setLanguage(lang);
+      setRoomMongooseId(mongooseId);
+      setRoomRole(role);
     };
 
     const handleRemoteUpdate = (update: number[]) => {
@@ -46,7 +72,11 @@ export const useCRDT = (socket: Socket, roomId: string) => {
 
   useEffect(() => {
     const handleLocalUpdate = (update: Uint8Array) => {
-      socket.emit("crdt:code-edit", { roomId, update: Array.from(update) });
+      socket.emit("crdt:code-edit", {
+        update: Array.from(update),
+      });
+
+      debouncedSnapshotSave();
     };
 
     ydoc?.on("update", handleLocalUpdate);
@@ -58,11 +88,19 @@ export const useCRDT = (socket: Socket, roomId: string) => {
 
   const handleLangChange = useCallback(
     (lang: string) => {
-      socket.emit("crdt:lang-change", { roomId, lang });
+      socket.emit("crdt:lang-change", { lang });
       setLanguage(lang);
     },
-    [socket, roomId],
+    [socket, roomMongooseId],
   );
 
-  return { ydoc, language, handleLangChange };
+  return {
+    ydoc,
+    language,
+    handleLangChange,
+    roomMongooseId,
+    roomRole,
+    handleCodeSave,
+    saving,
+  };
 };

@@ -9,6 +9,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
   ValidationPipe,
@@ -20,6 +21,7 @@ import mongoose from 'mongoose';
 import { JWTGuard } from 'src/auth/guards/jwt.guard';
 import { JwtPayload } from 'src/auth/dtos/jwt-payload.dto';
 import { Request } from 'express';
+import { UserRoles } from 'src/common/enums';
 
 @Controller('users')
 export class UsersController {
@@ -27,15 +29,32 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
-  async getAllUsers() {
+  @UseGuards(JWTGuard)
+  async findUser(@Query('keyword') keyword: string) {
+    return await this.usersService.findUsers(keyword);
+  }
+
+  @Get()
+  @UseGuards(JWTGuard)
+  async getAllUsers(@Req() req: Request) {
+    if (req?.user?.role == UserRoles.ADMIN)
+      throw new HttpException('Unauthorized access', 401);
+
     return await this.usersService.getAllUsers();
   }
 
   @Get(':id')
-  async getUserById(@Param('id', ParseIntPipe) id: number) {
+  @UseGuards(JWTGuard)
+  async getUserById(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: Request,
+  ) {
     try {
       if (!mongoose.Types.ObjectId.isValid(id))
         throw new HttpException('Invalid Id', 400);
+
+      if (req?.user?.role == UserRoles.ADMIN)
+        throw new HttpException('Unauthorized access', 401);
 
       const user = await this.usersService.getUserById(id);
 
@@ -48,11 +67,16 @@ export class UsersController {
   }
 
   @Post()
+  @UseGuards(JWTGuard)
   // Added Validation Pipe for Incoming Data and applied Transformation (Class-Validator and Class-Transformer Packages)
   async addNewUser(
     @Body(new ValidationPipe({ transform: true })) user: CreateUserDto,
+    @Req() req: Request,
   ) {
     try {
+      if (req?.user?.role == UserRoles.ADMIN)
+        throw new HttpException('Unauthorized access', 401);
+
       return await this.usersService.addNewUser(user);
     } catch (error) {
       throw new BadRequestException(error.message);

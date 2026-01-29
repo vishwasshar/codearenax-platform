@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from "react";
 import { LangTypes } from "../commons/vars/lang-types";
 import { authRequest } from "../utils/axios.interceptor";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { FaLongArrowAltLeft } from "react-icons/fa";
 
 export const CreateRoom = () => {
   const [formData, setFormData] = useState({
@@ -23,7 +24,7 @@ export const CreateRoom = () => {
     try {
       const res = await authRequest.post("/rooms", formData);
       if (res.status == 201) {
-        navigate("/room/" + res.data._id);
+        navigate("/room/" + res.data.slug);
       }
     } catch (err) {
       console.log(err);
@@ -73,6 +74,13 @@ export const CreateRoom = () => {
               </fieldset>
             </form>
           </div>
+          <Link
+            to={"/rooms"}
+            className="btn btn-ghost underline mt-2"
+            type="submit"
+          >
+            <FaLongArrowAltLeft size={14} /> All Rooms
+          </Link>
         </div>
       </div>
     </div>

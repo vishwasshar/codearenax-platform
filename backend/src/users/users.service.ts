@@ -9,6 +9,18 @@ import { UpdateUserDto } from './dto/UpdateUser.dto';
 export class UsersService {
   constructor(@InjectModel(User.name) private userModel: Model<User>) {}
 
+  async findUsers(keyword: string) {
+    return await this.userModel
+      .find({
+        $or: [
+          { name: { $regex: keyword, $options: 'i' } },
+          { email: { $regex: keyword, $options: 'i' } },
+        ],
+      })
+      .select('name email')
+      .limit(3);
+  }
+
   async getAllUsers() {
     return await this.userModel.find();
   }

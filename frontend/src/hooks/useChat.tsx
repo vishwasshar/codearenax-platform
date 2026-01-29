@@ -68,8 +68,9 @@ export const useChat = (socket: Socket, roomId: string | undefined) => {
       const res = await authRequest.get(`/rooms/${roomId}/chat${query}`);
 
       if (res.status === 200) {
-        
         nextCursorRef.current = res.data.nextCursor || null;
+
+        res.data.chats.reverse();
         setMessages((curr) => [...res.data.chats, ...curr]);
       }
     } catch (err) {

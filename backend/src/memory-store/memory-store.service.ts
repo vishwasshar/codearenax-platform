@@ -8,4 +8,7 @@ export class MemoryStoreService {
 
   // Store YJS Docs for rooms
   public crdtRooms: Map<string, Y.Doc> = new Map<string, Y.Doc>();
+
+  // Store slug:mongoose._id for rooms
+  public roomSlug: Map<string, string> = new Map<string, string>();
 }

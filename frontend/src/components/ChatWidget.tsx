@@ -156,14 +156,25 @@ const ChatWidget: React.FC<{
           }}
         >
           <div className="h-full flex flex-col bg-black">
-            <div className="chat-body" ref={chatBodyRef} style={{ flex: 1 }}>
+            <div
+              className="flex flex-col overflow-y-scroll"
+              ref={chatBodyRef}
+              style={{ flex: 1 }}
+            >
               <div ref={topSentinelRef} className="h-1" />
               {messages?.map(({ _id, message, sender }) => {
-                let cls = `chat ${sender._id == userId ? "chat-end" : "chat-start"}`;
+                let cls = `chat-bubble max-w-[40%] wrap-break-word text-sm flex flex-col ${sender._id == userId ? "ms-auto text-end" : "self-start text-start"}`;
 
                 return (
-                  <div key={_id} className={cls}>
-                    <div className="chat-bubble">{message}</div>
+                  <div key={_id} className="px-4 py-1 flex w-full relative">
+                    <div className={cls}>
+                      <p>{message}</p>
+                      <span
+                        className={`text-xs bottom-0 text-gray-400 overflow-hidden`}
+                      >
+                        {sender.name}
+                      </span>
+                    </div>
                   </div>
                 );
               })}

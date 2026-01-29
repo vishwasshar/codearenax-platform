@@ -28,7 +28,7 @@ export class CrdtService {
 
     const hasEditAccess = roomDetails.accessList?.some(
       (u: any) =>
-        u?.user?.toString() === userId?.toString() &&
+        u?.user?._id?.toString() === userId?.toString() &&
         [AccessRole.OWNER, AccessRole.EDITOR].includes(u.role),
     );
 
@@ -57,9 +57,9 @@ export class CrdtService {
       !(
         roomDetails &&
         roomDetails?.accessList?.some(
-          (user: any) =>
-            user.user == userId &&
-            (user.role == AccessRole.OWNER || user.role == AccessRole.EDITOR),
+          (u: any) =>
+            u.user?._id == userId &&
+            (u.role == AccessRole.OWNER || u.role == AccessRole.EDITOR),
         )
       )
     )
