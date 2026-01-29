@@ -63,11 +63,17 @@ export class RoomsService {
   }
 
   async getRoomById(id: string) {
-    return await this.roomModel.findById(id).lean();
+    return await this.roomModel
+      .findById(id)
+      .populate('accessList.user', 'name email')
+      .lean();
   }
 
   async getRoomBySlug(slug: string) {
-    return await this.roomModel.findOne({ slug }).lean();
+    return await this.roomModel
+      .findOne({ slug })
+      .populate('accessList.user', 'name email')
+      .lean();
   }
 
   async createNewRoom(createRoom: CreateRoom, userId: string) {
@@ -107,20 +113,28 @@ export class RoomsService {
   }
 
   async addUserAccess(roomId: string, userId: string, role: AccessRole) {
-    const newAccess = { user: userId, role };
+    const newAccess = { _id: new Types.ObjectId(), user: userId, role };
 
-    const updatedRoom = this.roomModel.findByIdAndUpdate(
-      roomId,
+    await this.roomModel.findOneAndUpdate(
+      { _id: roomId, 'accessList.user': { $ne: new Types.ObjectId(userId) } },
       {
         $addToSet: { accessList: newAccess },
       },
       { new: true },
     );
-    return updatedRoom;
+
+    const populated = await this.roomModel
+      .findOne(
+        { _id: roomId, 'accessList._id': newAccess._id },
+        { 'accessList.$': 1 },
+      )
+      .populate('accessList.user', 'name email');
+
+    return populated?.accessList[0];
   }
 
   async updateUserAccess(roomId: string, userId: string, newRole: AccessRole) {
-    const updatedRoom = this.roomModel.updateOne(
+    const updatedRoom = await this.roomModel.updateOne(
       { _id: roomId, 'accessList.user': userId },
       {
         $set: {
@@ -134,7 +148,7 @@ export class RoomsService {
   }
 
   async removeUserAccess(roomId: string, userId: string) {
-    const updatedRoom = this.roomModel.findByIdAndUpdate(
+    const updatedRoom = await this.roomModel.findByIdAndUpdate(
       roomId,
       {
         $pull: { accessList: { user: userId } },
@@ -190,19 +204,27 @@ export class RoomsService {
 
   async handleRoomJoin(client: Socket, roomId: string) {
     try {
+      let slug: string = '';
+      if (!mongoose.Types.ObjectId.isValid(roomId)) {
+        slug = roomId;
+        roomId = this.inMemoryStore.roomSlug.get(slug) || '';
+      }
+
       let roomDetails = this.inMemoryStore.activeRooms.get(roomId);
       let ydoc: Y.Doc;
 
       if (!roomDetails) {
-        if (mongoose.Types.ObjectId.isValid(roomId))
-          roomDetails = await this.getRoomById(roomId);
+        if (roomId) roomDetails = await this.getRoomById(roomId);
         else {
-          let slug = roomId;
           roomDetails = await this.getRoomBySlug(slug);
-          roomId = roomDetails._id.toString();
         }
+        if (!roomDetails) {
+          client.emit('room:error', 'Room not found');
+          return;
+        }
+        roomId = roomDetails._id.toString();
 
-        this.inMemoryStore.roomSlug.set(roomDetails.slug, roomId);
+        this.inMemoryStore.roomSlug.set(roomDetails?.slug, roomId);
 
         if (!roomDetails) {
           client.emit('room:error', 'Room not Found');
@@ -216,8 +238,7 @@ export class RoomsService {
         this.inMemoryStore.crdtRooms.set(roomId, ydoc);
         this.inMemoryStore.activeRooms.set(roomId, roomDetails);
       } else {
-        if (mongoose.Types.ObjectId.isValid(roomId)) {
-          let slug = roomId;
+        if (!roomId) {
           roomId = this.inMemoryStore.roomSlug.get(slug)!;
         }
         ydoc = this.inMemoryStore.crdtRooms.get(roomId)!;
@@ -225,8 +246,8 @@ export class RoomsService {
 
       const userId = client.data.userId;
 
-      const hasAccess = roomDetails.accessList?.some(
-        (u: any) => u?.user?.toString() === userId?.toString(),
+      const hasAccess = roomDetails.accessList?.find(
+        (u: any) => u?.user?._id?.toString() === userId?.toString(),
       );
 
       if (!hasAccess) {
@@ -247,6 +268,7 @@ export class RoomsService {
         Y.encodeStateAsUpdate(ydoc),
         roomDetails.lang,
         roomId,
+        hasAccess.role,
       );
     } catch (err) {
       console.error('Join error:', err);

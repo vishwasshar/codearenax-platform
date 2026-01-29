@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Editor, { type OnMount } from "@monaco-editor/react";
 import * as monaco from "monaco-editor";
 import { LangTypes } from "../commons/vars/lang-types";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "xterm-addon-fit";
@@ -26,6 +26,7 @@ import type { Corner } from "../commons/vars/corner-types";
 import { getNearestCorner } from "../utils/getNearestCorner";
 import { Resizable } from "re-resizable";
 import { useRoomSocket } from "../hooks/useRoomSocket";
+import { FaLongArrowAltLeft } from "react-icons/fa";
 
 const TextEditor = () => {
   const [corner, setCorner] = useState<Corner>("bottom-right");
@@ -34,10 +35,8 @@ const TextEditor = () => {
 
   const { roomId } = useParams();
   const socket = useRoomSocket(token, roomId || "");
-  const { ydoc, language, handleLangChange, roomMongooseId } = useCRDT(
-    socket,
-    roomId || "",
-  );
+  const { ydoc, language, handleLangChange, roomMongooseId, roomRole } =
+    useCRDT(socket);
 
   const terminalRef = useRef<HTMLDivElement | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -150,14 +149,18 @@ const TextEditor = () => {
       <h2 className="text-center text-2xl ">Loading...</h2>
     </div>
   ) : (
-    <div className="w-full h-screen flex flex-col gap-2">
-      <div className="flex justify-between h-fit">
+    <div className="w-full h-screen flex flex-col">
+      <div className="flex items-center h-fit px-2 py-1 gap-4">
+        <Link to={"/rooms"} className="btn btn-sm">
+          <FaLongArrowAltLeft /> All Rooms
+        </Link>
         <select
           onChange={(e) => {
             handleLangChange(e.target.value);
           }}
+          disabled={roomRole == "viewer"}
           value={language}
-          className="select select-ghost w-50"
+          className="select select-ghost w-50 capitalize"
         >
           {LangTypes.map((lang) => (
             <option value={lang} key={lang}>
@@ -165,9 +168,19 @@ const TextEditor = () => {
             </option>
           ))}
         </select>
-        <button className="btn btn-ghost" onClick={handleCodeRun}>
-          Run
-        </button>
+        {roomRole != "viewer" && (
+          <div className="ms-auto flex gap-2">
+            <button
+              className="btn btn-sm bg-success/80"
+              onClick={handleCodeRun}
+            >
+              Save
+            </button>
+            <button className="btn btn-sm bg-accent/80" onClick={handleCodeRun}>
+              Run
+            </button>
+          </div>
+        )}
       </div>
       <Resizable
         defaultSize={{
@@ -189,6 +202,7 @@ const TextEditor = () => {
             theme="vs-dark"
             onMount={handleEditorMount}
             onValidate={handleCodeValidation}
+            options={{ readOnly: roomRole == "viewer" }}
           />
           <DndContext onDragEnd={handleDragEnd} sensors={sensors}>
             <ChatWidget
@@ -199,6 +213,7 @@ const TextEditor = () => {
           </DndContext>
         </div>
       </Resizable>
+      <div className="w-md h-1 mx-auto my-1 bg-base-100 rounded-4xl"></div>
       <div className="p-1 h-[100%] overflow-auto" style={{ flex: 1 }}>
         <div key={editorKey.current} ref={terminalRef} className="h-full"></div>
       </div>

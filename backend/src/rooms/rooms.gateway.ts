@@ -57,7 +57,7 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('crdt:code-edit')
-  updateRoom(client: Socket, data: { roomId: string; update: number[] }) {
+  updateRoom(client: Socket, data: { update: number[] }) {
     this.crdtService.updateRoom(client, data);
   }
 

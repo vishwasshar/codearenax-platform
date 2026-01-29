@@ -97,7 +97,7 @@ export class RoomsController {
     return room;
   }
 
-  @Patch(':roomId')
+  @Put(':roomId')
   @UseGuards(JWTGuard, RoomsGuard)
   async updateRoom(
     @Param('roomId') roomId: string,
@@ -138,6 +138,9 @@ export class RoomsController {
   async addUserAccess(@Param('roomId') roomId: string, @Req() req: Request) {
     if (!mongoose.Types.ObjectId.isValid(roomId))
       throw new HttpException('Invalid Room Id', 400);
+
+    if (!mongoose.Types.ObjectId.isValid(req.body.userId))
+      throw new HttpException('Invalid User', 400);
 
     if (req?.roomRole != 'owner')
       throw new UnauthorizedException('Unauthorized Operation');

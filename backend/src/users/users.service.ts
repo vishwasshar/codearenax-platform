@@ -17,6 +17,7 @@ export class UsersService {
           { email: { $regex: keyword, $options: 'i' } },
         ],
       })
+      .select('name email')
       .limit(3);
   }
 
