@@ -10,21 +10,20 @@ import { CodeSubmission } from './dtos/RunCode.dto';
 import { RunCodeService } from './run-code.service';
 import { MemoryStoreService } from 'src/memory-store/memory-store.service';
 import { RoomsGateway } from 'src/rooms/rooms.gateway';
+import { RedisStoreService } from 'src/redis-store/redis-store.service';
 
 @Controller('run-code')
 export class RunCodeController {
   constructor(
     private readonly runCodeService: RunCodeService,
-    private readonly memoryStore: MemoryStoreService,
     private readonly roomsGateway: RoomsGateway,
+    private readonly redisStore: RedisStoreService,
   ) {}
 
   @Post()
   async runCode(@Body(new ValidationPipe()) data: CodeSubmission) {
-    if (!this.memoryStore.activeRooms.has(data.roomId))
-      throw new NotFoundException('Room not active');
-
-    const room = this.memoryStore.activeRooms.get(data.roomId);
+    const room = await this.redisStore.get(`active-rooms:${data.roomId}`);
+    if (!room) throw new NotFoundException('Room not active');
 
     const res = await this.runCodeService.runCode(room.content, room.lang);
 

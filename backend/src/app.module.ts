@@ -10,6 +10,7 @@ import { AuthModule } from './auth/auth.module';
 import { RunCodeModule } from './run-code/run-code.module';
 import { MemoryStoreModule } from './memory-store/memory-store.module';
 import { ChatModule } from './chat/chat.module';
+import { RedisStoreModule } from './redis-store/redis-store.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { ChatModule } from './chat/chat.module';
     RunCodeModule,
     MemoryStoreModule,
     ChatModule,
+    RedisStoreModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -35,6 +35,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "googleapis": "^153.0.0",
+    "ioredis": "^5.9.2",
     "mongoose": "^8.15.1",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",

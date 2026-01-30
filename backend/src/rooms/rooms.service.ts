@@ -11,6 +11,7 @@ import { ydocToString } from 'src/utils/ydocToString';
 import { Socket } from 'socket.io';
 import * as Y from 'yjs';
 import { JwtService } from '@nestjs/jwt';
+import { RedisStoreService } from 'src/redis-store/redis-store.service';
 
 @Injectable()
 export class RoomsService {
@@ -18,6 +19,7 @@ export class RoomsService {
     @InjectModel(Room.name) private roomModel: Model<Room>,
     private inMemoryStore: MemoryStoreService,
     private jwtService: JwtService,
+    private redisStore: RedisStoreService,
   ) {}
 
   async authorizeUser(roomId: string, userId: string) {
@@ -88,19 +90,20 @@ export class RoomsService {
   }
 
   async saveCodeSnapshot(id: string) {
-    const ydoc = this.inMemoryStore.crdtRooms.get(id);
+    const ydoc = await this.redisStore.getYDoc(`crdt-rooms:${id}`);
+    if (!ydoc) return;
+
     const updatedContent = ydocToString(ydoc);
 
     return await this.roomModel.findByIdAndUpdate(
       id,
       { content: updatedContent },
-      {
-        new: true,
-      },
+      { new: true },
     );
   }
 
   async updateRoom(id: string, updateRoom: UpdateRoom) {
+    this.redisStore.delete(`active-rooms:${id}`);
     return await this.roomModel.findByIdAndUpdate(id, updateRoom, {
       new: true,
     });
@@ -109,14 +112,19 @@ export class RoomsService {
   async deleteRoom(roomId: string) {
     await this.roomModel.findByIdAndDelete(roomId);
 
-    this.inMemoryStore.activeRooms.delete(roomId);
+    // this.inMemoryStore.activeRooms.delete(roomId);
     this.inMemoryStore.crdtRooms.delete(roomId);
+
+    this.redisStore.delete(`active-rooms:${roomId}`);
+    this.redisStore.delete(`crdt-rooms:${roomId}`);
 
     return true;
   }
 
   async addUserAccess(roomId: string, userId: string, role: AccessRole) {
     const newAccess = { _id: new Types.ObjectId(), user: userId, role };
+
+    this.redisStore.delete(`active-rooms:${roomId}`);
 
     await this.roomModel.findOneAndUpdate(
       { _id: roomId, 'accessList.user': { $ne: new Types.ObjectId(userId) } },
@@ -137,6 +145,7 @@ export class RoomsService {
   }
 
   async updateUserAccess(roomId: string, userId: string, newRole: AccessRole) {
+    this.redisStore.delete(`active-rooms:${roomId}`);
     const updatedRoom = await this.roomModel.updateOne(
       { _id: roomId, 'accessList.user': userId },
       {
@@ -151,6 +160,7 @@ export class RoomsService {
   }
 
   async removeUserAccess(roomId: string, userId: string) {
+    this.redisStore.delete(`active-rooms:${roomId}`);
     const updatedRoom = await this.roomModel.findByIdAndUpdate(
       roomId,
       {
@@ -177,24 +187,27 @@ export class RoomsService {
 
   async handleDisconnect(client: Socket) {
     try {
-      for (const [
-        roomId,
-        roomDetails,
-      ] of this.inMemoryStore.activeRooms.entries()) {
-        if (!roomDetails.activeUsers.includes(client.id)) continue;
+      const roomId = client.data.roomId;
 
-        roomDetails.activeUsers = roomDetails.activeUsers.filter(
-          (id: string) => id !== client.id,
-        );
+      const roomDetails = await this.redisStore.get(`active-rooms:${roomId}`);
 
-        if (roomDetails?.activeUsers?.length === 0) {
-          await this.saveCodeSnapshot(roomId);
+      if (!roomDetails || !roomDetails.activeUsers.includes(client.id)) return;
 
-          this.inMemoryStore.activeRooms.delete(roomId);
-          this.inMemoryStore.crdtRooms.delete(roomId);
-        } else {
-          this.inMemoryStore.activeRooms.set(roomId, roomDetails);
-        }
+      roomDetails.activeUsers = roomDetails.activeUsers.filter(
+        (id: string) => id !== client.id,
+      );
+
+      if (roomDetails?.activeUsers?.length === 0) {
+        await this.saveCodeSnapshot(roomId);
+
+        // this.inMemoryStore.activeRooms.delete(roomId);
+
+        this.inMemoryStore.crdtRooms.delete(roomId);
+        this.redisStore.delete(`active-rooms:${roomId}`);
+        this.redisStore.delete(`crdt-rooms:${roomId}`);
+      } else {
+        // this.inMemoryStore.activeRooms.set(roomId, roomDetails);
+        this.redisStore.set(`active-rooms:${roomId}`, roomDetails);
       }
     } catch (err) {
       console.error('Disconnect error:', err);
@@ -206,10 +219,14 @@ export class RoomsService {
       let slug: string = '';
       if (!mongoose.Types.ObjectId.isValid(roomId)) {
         slug = roomId;
-        roomId = this.inMemoryStore.roomSlug.get(slug) || '';
+        roomId = await this.redisStore.get(`room-slug:${slug}`);
       }
 
-      let roomDetails = this.inMemoryStore.activeRooms.get(roomId);
+      let localYdoc = this.inMemoryStore.crdtRooms.has(roomId);
+
+      let roomDetails = localYdoc
+        ? await this.redisStore.get(`active-rooms:${roomId}`)
+        : null;
       let ydoc: Y.Doc;
 
       if (!roomDetails) {
@@ -223,7 +240,7 @@ export class RoomsService {
         }
         roomId = roomDetails._id.toString();
 
-        this.inMemoryStore.roomSlug.set(roomDetails?.slug, roomId);
+        this.redisStore.set(`room-slug:${slug}`, roomId);
 
         if (!roomDetails) {
           client.emit('room:error', 'Room not Found');
@@ -235,12 +252,17 @@ export class RoomsService {
 
         ydoc = stringToYDoc(roomDetails.content);
         this.inMemoryStore.crdtRooms.set(roomId, ydoc);
-        this.inMemoryStore.activeRooms.set(roomId, roomDetails);
+        this.redisStore.setYDoc(`crdt-rooms:${roomId}`, ydoc);
+        // this.inMemoryStore.activeRooms.set(roomId, roomDetails);
+        this.redisStore.set(`active-rooms:${roomId}`, roomDetails);
       } else {
         if (!roomId) {
-          roomId = this.inMemoryStore.roomSlug.get(slug)!;
+          roomId = await this.redisStore.get(`room-slug:${slug}`)!;
         }
-        ydoc = this.inMemoryStore.crdtRooms.get(roomId)!;
+        // ydoc = this.inMemoryStore.crdtRooms.get(roomId)!;
+        ydoc =
+          (await this.redisStore.getYDoc(`crdt-rooms:${roomId}`)) ||
+          new Y.Doc();
       }
 
       const userId = client.data.userId;
@@ -278,7 +300,8 @@ export class RoomsService {
   async leaveRoom(client: Socket) {
     const roomId = client.data.roomId;
 
-    let roomDetails = this.inMemoryStore.activeRooms.get(roomId);
+    // let roomDetails = this.inMemoryStore.activeRooms.get(roomId);
+    let roomDetails = await this.redisStore.get(`active-rooms:${roomId}`);
 
     if (!roomDetails) return;
 
@@ -288,10 +311,13 @@ export class RoomsService {
 
     if (roomDetails?.activeUsers?.length == 0) {
       await this.saveCodeSnapshot(roomId);
-      this.inMemoryStore.activeRooms.delete(roomId);
+      // this.inMemoryStore.activeRooms.delete(roomId);
       this.inMemoryStore.crdtRooms.delete(roomId);
+      this.redisStore.delete(`active-rooms:${roomId}`);
+      this.redisStore.delete(`crdt-rooms${roomId}`);
     } else {
-      this.inMemoryStore.activeRooms.set(roomId, roomDetails);
+      // this.inMemoryStore.activeRooms.set(roomId, roomDetails);
+      this.redisStore.set(`active-rooms:${roomId}`, roomDetails);
     }
   }
 }
