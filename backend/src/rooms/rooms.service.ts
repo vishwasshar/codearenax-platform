@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import mongoose, { Model, Types } from 'mongoose';
 import { Room } from 'src/schemas/room.schema';
 import { CreateRoom } from './dtos/CreateRoom.dto';
 import { UpdateRoom } from './dtos/UpdateRoom.dto';
@@ -11,6 +11,7 @@ import { ydocToString } from 'src/utils/ydocToString';
 import { Socket } from 'socket.io';
 import * as Y from 'yjs';
 import { JwtService } from '@nestjs/jwt';
+import { RedisStoreService } from 'src/redis-store/redis-store.service';
 
 @Injectable()
 export class RoomsService {
@@ -18,6 +19,7 @@ export class RoomsService {
     @InjectModel(Room.name) private roomModel: Model<Room>,
     private inMemoryStore: MemoryStoreService,
     private jwtService: JwtService,
+    private redisStore: RedisStoreService,
   ) {}
 
   async authorizeUser(roomId: string, userId: string) {
@@ -28,40 +30,146 @@ export class RoomsService {
 
     if (!room) throw new NotFoundException('Room Not Found');
 
-    return room?.accessList.some((usr: any) => usr.user == userId);
+    return room?.accessList.find((usr: any) => usr.user == userId)?.role;
   }
 
-  async getAllRooms() {
-    return await this.roomModel.find().lean();
+  async getAllRooms(userId: string) {
+    const rooms = await this.roomModel.aggregate([
+      { $match: { 'accessList.user': new Types.ObjectId(userId) } },
+      {
+        $addFields: {
+          myrole: {
+            $first: {
+              $filter: {
+                input: '$accessList',
+                as: 'a',
+                cond: { $eq: ['$$a.user', new Types.ObjectId(userId)] },
+              },
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          slug: 1,
+          name: 1,
+          lang: 1,
+          role: '$myrole.role',
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      },
+    ]);
+
+    return rooms;
   }
 
   async getRoomById(id: string) {
-    return await this.roomModel.findById(id).lean();
+    return await this.roomModel
+      .findById(id)
+      .populate('accessList.user', 'name email')
+      .lean();
+  }
+
+  async getRoomBySlug(slug: string) {
+    return await this.roomModel
+      .findOne({ slug })
+      .populate('accessList.user', 'name email')
+      .lean();
   }
 
   async createNewRoom(createRoom: CreateRoom, userId: string) {
-    const newRoom = await this.roomModel.create({
+    const newRoom = new this.roomModel({
       ...createRoom,
       accessList: { user: userId, role: AccessRole.OWNER },
     });
 
+    await newRoom.save();
+
     return newRoom;
   }
 
-  async saveCodeSnapshot(id: string, updatedContent: string) {
+  async saveCodeSnapshot(id: string) {
+    const ydoc = await this.redisStore.getYDoc(`crdt-rooms:${id}`);
+    if (!ydoc) return;
+
+    const updatedContent = ydocToString(ydoc);
+
     return await this.roomModel.findByIdAndUpdate(
       id,
       { content: updatedContent },
-      {
-        new: true,
-      },
+      { new: true },
     );
   }
 
   async updateRoom(id: string, updateRoom: UpdateRoom) {
+    this.redisStore.delete(`active-rooms:${id}`);
     return await this.roomModel.findByIdAndUpdate(id, updateRoom, {
       new: true,
     });
+  }
+
+  async deleteRoom(roomId: string) {
+    await this.roomModel.findByIdAndDelete(roomId);
+
+    // this.inMemoryStore.activeRooms.delete(roomId);
+    this.inMemoryStore.crdtRooms.delete(roomId);
+
+    this.redisStore.delete(`active-rooms:${roomId}`);
+    this.redisStore.delete(`crdt-rooms:${roomId}`);
+
+    return true;
+  }
+
+  async addUserAccess(roomId: string, userId: string, role: AccessRole) {
+    const newAccess = { _id: new Types.ObjectId(), user: userId, role };
+
+    this.redisStore.delete(`active-rooms:${roomId}`);
+
+    await this.roomModel.findOneAndUpdate(
+      { _id: roomId, 'accessList.user': { $ne: new Types.ObjectId(userId) } },
+      {
+        $addToSet: { accessList: newAccess },
+      },
+      { new: true },
+    );
+
+    const populated = await this.roomModel
+      .findOne(
+        { _id: roomId, 'accessList._id': newAccess._id },
+        { 'accessList.$': 1 },
+      )
+      .populate('accessList.user', 'name email');
+
+    return populated?.accessList[0];
+  }
+
+  async updateUserAccess(roomId: string, userId: string, newRole: AccessRole) {
+    this.redisStore.delete(`active-rooms:${roomId}`);
+    const updatedRoom = await this.roomModel.updateOne(
+      { _id: roomId, 'accessList.user': userId },
+      {
+        $set: {
+          'accessList.$.role': newRole,
+        },
+      },
+      { new: true },
+    );
+
+    return updatedRoom;
+  }
+
+  async removeUserAccess(roomId: string, userId: string) {
+    this.redisStore.delete(`active-rooms:${roomId}`);
+    const updatedRoom = await this.roomModel.findByIdAndUpdate(
+      roomId,
+      {
+        $pull: { accessList: { user: userId } },
+      },
+      { new: true },
+    );
+
+    return updatedRoom;
   }
 
   async handleConnection(client: any, ...args: any[]) {
@@ -79,28 +187,27 @@ export class RoomsService {
 
   async handleDisconnect(client: Socket) {
     try {
-      for (const [
-        roomId,
-        roomDetails,
-      ] of this.inMemoryStore.activeRooms.entries()) {
-        if (!roomDetails.activeUsers.includes(client.id)) continue;
+      const roomId = client.data.roomId;
 
-        roomDetails.activeUsers = roomDetails.activeUsers.filter(
-          (id: string) => id !== client.id,
-        );
+      const roomDetails = await this.redisStore.get(`active-rooms:${roomId}`);
 
-        if (roomDetails?.activeUsers?.length === 0) {
-          const ydoc = this.inMemoryStore.crdtRooms.get(roomId);
+      if (!roomDetails || !roomDetails.activeUsers.includes(client.id)) return;
 
-          if (ydoc) {
-            await this.saveCodeSnapshot(roomId, ydocToString(ydoc));
-          }
+      roomDetails.activeUsers = roomDetails.activeUsers.filter(
+        (id: string) => id !== client.id,
+      );
 
-          this.inMemoryStore.activeRooms.delete(roomId);
-          this.inMemoryStore.crdtRooms.delete(roomId);
-        } else {
-          this.inMemoryStore.activeRooms.set(roomId, roomDetails);
-        }
+      if (roomDetails?.activeUsers?.length === 0) {
+        await this.saveCodeSnapshot(roomId);
+
+        // this.inMemoryStore.activeRooms.delete(roomId);
+
+        this.inMemoryStore.crdtRooms.delete(roomId);
+        this.redisStore.delete(`active-rooms:${roomId}`);
+        this.redisStore.delete(`crdt-rooms:${roomId}`);
+      } else {
+        // this.inMemoryStore.activeRooms.set(roomId, roomDetails);
+        this.redisStore.set(`active-rooms:${roomId}`, roomDetails);
       }
     } catch (err) {
       console.error('Disconnect error:', err);
@@ -109,11 +216,31 @@ export class RoomsService {
 
   async handleRoomJoin(client: Socket, roomId: string) {
     try {
-      let roomDetails = this.inMemoryStore.activeRooms.get(roomId);
+      let slug: string = '';
+      if (!mongoose.Types.ObjectId.isValid(roomId)) {
+        slug = roomId;
+        roomId = await this.redisStore.get(`room-slug:${slug}`);
+      }
+
+      let localYdoc = this.inMemoryStore.crdtRooms.has(roomId);
+
+      let roomDetails = localYdoc
+        ? await this.redisStore.get(`active-rooms:${roomId}`)
+        : null;
       let ydoc: Y.Doc;
 
       if (!roomDetails) {
-        roomDetails = await this.getRoomById(roomId);
+        if (roomId) roomDetails = await this.getRoomById(roomId);
+        else {
+          roomDetails = await this.getRoomBySlug(slug);
+        }
+        if (!roomDetails) {
+          client.emit('room:error', 'Room not found');
+          return;
+        }
+        roomId = roomDetails._id.toString();
+
+        this.redisStore.set(`room-slug:${slug}`, roomId);
 
         if (!roomDetails) {
           client.emit('room:error', 'Room not Found');
@@ -125,15 +252,23 @@ export class RoomsService {
 
         ydoc = stringToYDoc(roomDetails.content);
         this.inMemoryStore.crdtRooms.set(roomId, ydoc);
-        this.inMemoryStore.activeRooms.set(roomId, roomDetails);
+        this.redisStore.setYDoc(`crdt-rooms:${roomId}`, ydoc);
+        // this.inMemoryStore.activeRooms.set(roomId, roomDetails);
+        this.redisStore.set(`active-rooms:${roomId}`, roomDetails);
       } else {
-        ydoc = this.inMemoryStore.crdtRooms.get(roomId)!;
+        if (!roomId) {
+          roomId = await this.redisStore.get(`room-slug:${slug}`)!;
+        }
+        // ydoc = this.inMemoryStore.crdtRooms.get(roomId)!;
+        ydoc =
+          (await this.redisStore.getYDoc(`crdt-rooms:${roomId}`)) ||
+          new Y.Doc();
       }
 
       const userId = client.data.userId;
 
-      const hasAccess = roomDetails.accessList?.some(
-        (u: any) => u?.user?.toString() === userId?.toString(),
+      const hasAccess = roomDetails.accessList?.find(
+        (u: any) => u?.user?._id?.toString() === userId?.toString(),
       );
 
       if (!hasAccess) {
@@ -149,7 +284,13 @@ export class RoomsService {
 
       client.data.roomId = roomId;
 
-      client.emit('crdt:doc', Y.encodeStateAsUpdate(ydoc), roomDetails.lang);
+      client.emit(
+        'crdt:doc',
+        Y.encodeStateAsUpdate(ydoc),
+        roomDetails.lang,
+        roomId,
+        hasAccess.role,
+      );
     } catch (err) {
       console.error('Join error:', err);
       client.emit('room:error', 'Failed to Join Room');
@@ -159,8 +300,8 @@ export class RoomsService {
   async leaveRoom(client: Socket) {
     const roomId = client.data.roomId;
 
-    let roomDetails = this.inMemoryStore.activeRooms.get(roomId);
-    let room = this.inMemoryStore.crdtRooms.get(roomId);
+    // let roomDetails = this.inMemoryStore.activeRooms.get(roomId);
+    let roomDetails = await this.redisStore.get(`active-rooms:${roomId}`);
 
     if (!roomDetails) return;
 
@@ -169,11 +310,14 @@ export class RoomsService {
     );
 
     if (roomDetails?.activeUsers?.length == 0) {
-      await this.saveCodeSnapshot(roomId, ydocToString(room));
-      this.inMemoryStore.activeRooms.delete(roomId);
+      await this.saveCodeSnapshot(roomId);
+      // this.inMemoryStore.activeRooms.delete(roomId);
       this.inMemoryStore.crdtRooms.delete(roomId);
+      this.redisStore.delete(`active-rooms:${roomId}`);
+      this.redisStore.delete(`crdt-rooms${roomId}`);
     } else {
-      this.inMemoryStore.activeRooms.set(roomId, roomDetails);
+      // this.inMemoryStore.activeRooms.set(roomId, roomDetails);
+      this.redisStore.set(`active-rooms:${roomId}`, roomDetails);
     }
   }
 }

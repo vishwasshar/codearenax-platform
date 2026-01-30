@@ -68,6 +68,7 @@ export class AuthService {
       user = await this.userModel.create({
         name: data.name,
         email: data.email,
+        password: crypto.randomUUID(),
       });
     const { password, ...payload } = user;
 

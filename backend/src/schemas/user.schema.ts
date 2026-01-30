@@ -21,6 +21,8 @@ export class User {
 // Creating a Schema using a Class
 export const UserSchema = SchemaFactory.createForClass(User);
 
+UserSchema.index({ email: 1 }, { unique: true });
+
 UserSchema.virtual('rooms', {
   ref: 'Room',
   localField: '_id',
