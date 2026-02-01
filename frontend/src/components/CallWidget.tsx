@@ -1,9 +1,8 @@
 import React, { useEffect, useRef, useState, type FormEvent } from "react";
 import { Resizable } from "re-resizable";
-import { BsChatSquareText } from "react-icons/bs";
+import { BsPhone } from "react-icons/bs";
 import { IoClose, IoSend } from "react-icons/io5";
 import type { Socket } from "socket.io-client";
-import { useChat } from "../hooks/useChat";
 import { useSelector } from "react-redux";
 
 type Size = {
@@ -11,7 +10,7 @@ type Size = {
   height: number;
 };
 
-const ChatWidget: React.FC<{
+const CallWidget: React.FC<{
   socket: Socket;
   showWidget: Boolean;
   setShowWidget: any;
@@ -26,20 +25,20 @@ const ChatWidget: React.FC<{
 
   const [newMessage, setNewMessage] = useState<string>("");
 
-  const { messages, sendMessage, fetchRoomChats } = useChat(socket, roomId);
+  // const { messages, sendMessage, fetchRoomCalls } = { messages: [],sendMessage:()=>{} };
 
-  const chatBodyRef = useRef<HTMLDivElement | null>(null);
+  const callBodyRef = useRef<HTMLDivElement | null>(null);
   const topSentinelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          fetchRoomChats();
+          // fetchRoomCalls();
         }
       },
       {
-        root: chatBodyRef.current,
+        root: callBodyRef.current,
         threshold: 1,
       },
     );
@@ -55,16 +54,16 @@ const ChatWidget: React.FC<{
     e.preventDefault();
     if (!newMessage) return;
 
-    sendMessage(newMessage);
+    // sendMessage(newMessage);
 
     setNewMessage("");
   };
 
   useEffect(() => {
-    if (!chatBodyRef.current) return;
+    if (!callBodyRef.current) return;
 
-    chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
-  }, [messages]);
+    callBodyRef.current.scrollTop = callBodyRef.current.scrollHeight;
+  }, []);
 
   return (
     <>
@@ -75,12 +74,12 @@ const ChatWidget: React.FC<{
           setShowWidget((curr: Boolean) => !curr);
         }}
       >
-        <BsChatSquareText size={25} color="#fff" />
+        <BsPhone size={25} color="#fff" />
       </button>
 
-      <div className={`chat-panel ${showWidget ? "show" : "hide"}`}>
-        <div className="chat-header">
-          <h2>Room Chat</h2>
+      <div className={`call-panel ${showWidget ? "show" : "hide"}`}>
+        <div className="call-header">
+          <h2>Room Call</h2>
           <button
             className="btn btn-sm btn-ghost btn-circle"
             onClick={() => {
@@ -92,7 +91,6 @@ const ChatWidget: React.FC<{
         </div>
         <Resizable
           size={size}
-          minHeight={400}
           minWidth={200}
           enable={{
             top: true,
@@ -124,12 +122,12 @@ const ChatWidget: React.FC<{
           <div className="h-full flex flex-col bg-black">
             <div
               className="flex flex-col overflow-y-scroll"
-              ref={chatBodyRef}
+              ref={callBodyRef}
               style={{ flex: 1 }}
             >
               <div ref={topSentinelRef} className="h-1" />
-              {messages?.map(({ _id, message, sender }) => {
-                let cls = `chat-bubble max-w-[40%] wrap-break-word text-sm flex flex-col ${sender._id == userId ? "ms-auto text-end" : "self-start text-start"}`;
+              {/* {messages?.map(({ _id, message, sender }) => {
+                let cls = `call-bubble max-w-[40%] wrap-break-word text-sm flex flex-col ${sender._id == userId ? "ms-auto text-end" : "self-start text-start"}`;
 
                 return (
                   <div key={_id} className="px-4 py-1 flex w-full relative">
@@ -143,7 +141,7 @@ const ChatWidget: React.FC<{
                     </div>
                   </div>
                 );
-              })}
+              })} */}
             </div>
             <form
               className="message-form w-full flex justify-center items-center gap-2 py-2 px-4"
@@ -168,4 +166,4 @@ const ChatWidget: React.FC<{
   );
 };
 
-export default ChatWidget;
+export default CallWidget;
