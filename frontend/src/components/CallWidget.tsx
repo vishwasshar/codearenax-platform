@@ -1,9 +1,17 @@
-import React, { useEffect, useRef, useState, type FormEvent } from "react";
+import React, { useEffect, useState } from "react";
 import { Resizable } from "re-resizable";
 import { BsPhone } from "react-icons/bs";
-import { IoClose, IoSend } from "react-icons/io5";
+import {
+  IoClose,
+  IoMic,
+  IoMicOff,
+  IoVideocam,
+  IoVideocamOff,
+} from "react-icons/io5";
+import { MdOutlineScreenShare, MdOutlineStopScreenShare } from "react-icons/md";
 import type { Socket } from "socket.io-client";
 import { useSelector } from "react-redux";
+import useLocalMedia from "../hooks/useLocalMedia";
 
 type Size = {
   width: number;
@@ -23,47 +31,28 @@ const CallWidget: React.FC<{
     height: 300,
   });
 
-  const [newMessage, setNewMessage] = useState<string>("");
-
-  // const { messages, sendMessage, fetchRoomCalls } = { messages: [],sendMessage:()=>{} };
-
-  const callBodyRef = useRef<HTMLDivElement | null>(null);
-  const topSentinelRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          // fetchRoomCalls();
-        }
-      },
-      {
-        root: callBodyRef.current,
-        threshold: 1,
-      },
-    );
-
-    if (topSentinelRef.current) {
-      observer.observe(topSentinelRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, []);
-
-  const handleFormSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    if (!newMessage) return;
-
-    // sendMessage(newMessage);
-
-    setNewMessage("");
-  };
+  const {
+    trackMapRef,
+    zoomedStreamRef,
+    handleCameraOn,
+    handleCameraOff,
+    setZoomedTrackId,
+    handleCameraToggle,
+    handleMicToggle,
+    handleScreenShare,
+    handleScreenShareStop,
+    cameraOn,
+    micOn,
+    screenShareOn,
+  } = useLocalMedia();
 
   useEffect(() => {
-    if (!callBodyRef.current) return;
+    if (showWidget) handleCameraOn();
 
-    callBodyRef.current.scrollTop = callBodyRef.current.scrollHeight;
-  }, []);
+    return () => {
+      handleCameraOff();
+    };
+  }, [showWidget]);
 
   return (
     <>
@@ -84,6 +73,7 @@ const CallWidget: React.FC<{
             className="btn btn-sm btn-ghost btn-circle"
             onClick={() => {
               setShowWidget((curr: Boolean) => !curr);
+              handleCameraOff();
             }}
           >
             <IoClose size={16} />
@@ -92,6 +82,7 @@ const CallWidget: React.FC<{
         <Resizable
           size={size}
           minWidth={200}
+          minHeight={400}
           enable={{
             top: true,
             right: true,
@@ -121,42 +112,74 @@ const CallWidget: React.FC<{
         >
           <div className="h-full flex flex-col bg-black">
             <div
-              className="flex flex-col overflow-y-scroll"
-              ref={callBodyRef}
+              className="flex flex-col overflow-y-scroll scroll-smooth gap-4 p-4"
               style={{ flex: 1 }}
             >
-              <div ref={topSentinelRef} className="h-1" />
-              {/* {messages?.map(({ _id, message, sender }) => {
-                let cls = `call-bubble max-w-[40%] wrap-break-word text-sm flex flex-col ${sender._id == userId ? "ms-auto text-end" : "self-start text-start"}`;
-
-                return (
-                  <div key={_id} className="px-4 py-1 flex w-full relative">
-                    <div className={cls}>
-                      <p>{message}</p>
-                      <span
-                        className={`text-xs bottom-0 text-gray-400 overflow-hidden`}
-                      >
-                        {sender.name}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })} */}
+              <div className="relative w-full h-3/5 border border-base-100">
+                <video
+                  ref={zoomedStreamRef}
+                  autoPlay={true}
+                  muted={true}
+                  controls={false}
+                  style={{ width: "100%", height: "100%" }}
+                />
+              </div>
+              <div className="h-2/5 flex gap-4 overflow-x-auto w-full">
+                {[...trackMapRef.current.values()].map((track) => (
+                  <video
+                    key={track.id}
+                    autoPlay
+                    muted
+                    playsInline
+                    style={{ width: 120, cursor: "pointer" }}
+                    onClick={() => setZoomedTrackId(track.id)}
+                    ref={(el) => {
+                      if (el) el.srcObject = new MediaStream([track]);
+                    }}
+                    className="border border-base-100 h-10/12"
+                  />
+                ))}
+              </div>
             </div>
-            <form
-              className="message-form w-full flex justify-center items-center gap-2 py-2 px-4"
-              onSubmit={handleFormSubmit}
-            >
-              <input
-                type="text"
-                value={newMessage}
-                className="input outline-0 flex-1 border-0 focus:outline-0 focus:border-0 bg-[#1a1a1a] "
-                onChange={(e) => {
-                  setNewMessage(e.target.value);
-                }}
-              />
-              <button type="submit" className="btn btn-circle">
-                <IoSend size={15} />
+            <form className="message-form w-full flex justify-center items-center gap-2 py-2 px-4">
+              <button
+                onClick={handleCameraToggle}
+                className={`btn btn-circle  ${cameraOn ? "bg-green-400" : ""}`}
+                type="button"
+              >
+                {cameraOn ? (
+                  <IoVideocam size={15} />
+                ) : (
+                  <IoVideocamOff size={15} />
+                )}
+              </button>
+
+              <button
+                onClick={handleMicToggle}
+                className={`btn btn-circle  ${micOn ? "bg-green-400" : ""}`}
+                type="button"
+              >
+                {micOn ? <IoMic size={15} /> : <IoMicOff size={15} />}
+              </button>
+              <button
+                onClick={
+                  screenShareOn ? handleScreenShareStop : handleScreenShare
+                }
+                className={`btn btn-circle  ${screenShareOn ? "bg-green-400" : ""}`}
+                type="button"
+              >
+                {screenShareOn ? (
+                  <MdOutlineScreenShare size={15} />
+                ) : (
+                  <MdOutlineStopScreenShare size={15} />
+                )}
+              </button>
+              <button
+                className="btn btn-circle"
+                type="button"
+                onClick={() => handleCameraOff()}
+              >
+                <IoClose size={15} />
               </button>
             </form>
           </div>
