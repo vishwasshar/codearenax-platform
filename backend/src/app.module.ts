@@ -11,6 +11,7 @@ import { RunCodeModule } from './run-code/run-code.module';
 import { MemoryStoreModule } from './memory-store/memory-store.module';
 import { ChatModule } from './chat/chat.module';
 import { RedisStoreModule } from './redis-store/redis-store.module';
+import { MediasoupModule } from './mediasoup/mediasoup.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { RedisStoreModule } from './redis-store/redis-store.module';
     MemoryStoreModule,
     ChatModule,
     RedisStoreModule,
+    MediasoupModule,
   ],
   controllers: [AppController],
   providers: [AppService],
