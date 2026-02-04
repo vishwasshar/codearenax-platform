@@ -8,6 +8,7 @@ import { JwtService } from '@nestjs/jwt';
 import { CRDTModule } from 'src/crdt/crdt.module';
 import { MemoryStoreModule } from 'src/memory-store/memory-store.module';
 import { ChatModule } from 'src/chat/chat.module';
+import { MediasoupModule } from 'src/mediasoup/mediasoup.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { ChatModule } from 'src/chat/chat.module';
     MemoryStoreModule,
     ChatModule,
     forwardRef(() => CRDTModule),
+    MediasoupModule,
   ],
   controllers: [RoomsController],
   providers: [RoomsService, RoomsGateway, JwtService],
