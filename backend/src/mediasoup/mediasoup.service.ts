@@ -48,8 +48,8 @@ export class MediasoupService {
 
   async createWorker() {
     this.worker = await createWorker({
-      rtcMinPort: 400000,
-      rtcMaxPort: 499999,
+      rtcMinPort: 40000,
+      rtcMaxPort: 49999,
     });
 
     this.worker.on('died', () => {
