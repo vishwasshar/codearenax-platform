@@ -3,7 +3,7 @@ import * as Y from 'yjs';
 import { types as mediasoupTypes } from 'mediasoup';
 
 type PeerState = {
-  transports: Map<string, mediasoupTypes.Transport>;
+  transports: Map<string, mediasoupTypes.WebRtcTransport>;
   producers: Map<string, mediasoupTypes.Producer>;
   consumers: Map<string, mediasoupTypes.Consumer>;
 };
@@ -27,12 +27,13 @@ export class MemoryStoreService {
   // Store Mediasoup room state (roomId -> router + peers).
   public mediasoupRooms: Map<string, RoomRtcState> = new Map();
 
-  getOrCreateRoom(roomId: string, router: mediasoupTypes.Router) {
+  getOrCreateRoom(roomId: string, router?: mediasoupTypes.Router) {
     const existing = this.mediasoupRooms.get(roomId);
     if (existing) {
       return existing;
     }
 
+    if (!router) throw new Error('Please pass router');
     const roomState: RoomRtcState = {
       router,
       peers: new Map(),
