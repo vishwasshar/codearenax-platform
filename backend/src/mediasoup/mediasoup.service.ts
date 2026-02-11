@@ -55,7 +55,7 @@ export class MediasoupService {
     return await this.worker!.createRouter({ mediaCodecs });
   }
 
-  async getRouterCapabilities(router: mediasoupTypes.Router) {
+  async getRouterRtpCapabilities(router: mediasoupTypes.Router) {
     return router.rtpCapabilities;
   }
 
