@@ -177,7 +177,10 @@ const CallWidget: React.FC<{
               <button
                 className="btn btn-circle"
                 type="button"
-                onClick={() => handleCameraOff()}
+                onClick={() => {
+                  setShowWidget((curr: Boolean) => !curr);
+                  handleCameraOff();
+                }}
               >
                 <IoClose size={15} />
               </button>
