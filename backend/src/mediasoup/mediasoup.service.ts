@@ -14,10 +14,21 @@ const DEFAULT_MEDIA_CODECS: mediasoupTypes.RtpCodecCapability[] = [
     preferredPayloadType: 0,
   },
   {
+    mimeType: 'video/H264',
     kind: 'video',
-    mimeType: 'video/VP8',
-    clockRate: 900000,
-    preferredPayloadType: 0,
+    clockRate: 90000,
+    preferredPayloadType: 101,
+    rtcpFeedback: [
+      { type: 'nack' },
+      { type: 'nack', parameter: 'pli' },
+      { type: 'ccm', parameter: 'fir' },
+      { type: 'goog-remb' },
+    ],
+    parameters: {
+      'level-asymmetry-allowed': 1,
+      'packetization-mode': 1,
+      'profile-level-id': '4d0032',
+    },
   },
 ];
 
