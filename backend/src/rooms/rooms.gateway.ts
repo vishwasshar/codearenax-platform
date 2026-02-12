@@ -1,5 +1,6 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import {
+  ConnectedSocket,
   OnGatewayConnection,
   OnGatewayDisconnect,
   SubscribeMessage,
@@ -78,17 +79,17 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('mediasoup:get-router-rtp-capabilities')
-  async getRouterCapabilities(client: Socket, callback: Function) {
+  async getRouterRtpCapabilities(client: Socket) {
     const room = this.inMemoryStore.getOrCreateRoom(client.data.roomId);
 
     const routerCapabilities =
       await this.mediasoupService.getRouterRtpCapabilities(room.router);
 
-    callback(routerCapabilities);
+    return routerCapabilities;
   }
 
   @SubscribeMessage('mediasoup:create-webrtc-transport')
-  async createWebRtcTransport(client: Socket, callback: Function) {
+  async createWebRtcTransport(client: Socket) {
     const room = this.inMemoryStore.getOrCreateRoom(client.data.roomId);
 
     const peer = this.inMemoryStore.getOrCreatePeer(
@@ -100,12 +101,12 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     peer.transports.set(transport.id, transport);
 
-    callback({
+    return {
       id: transport.id,
       iceCandidates: transport.iceCandidates,
       iceParameters: transport.iceParameters,
       dtlsParameters: transport.dtlsParameters,
-    });
+    };
   }
 
   @SubscribeMessage('mediasoup:connect-transport')
@@ -115,7 +116,6 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       transportId,
       dtlsParameters,
     }: { transportId: string; dtlsParameters: mediasoupTypes.DtlsParameters },
-    callback: Function,
   ) {
     try {
       const peer = this.inMemoryStore.getOrCreatePeer(
@@ -127,9 +127,9 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       await transport?.connect({ dtlsParameters });
 
-      callback('success');
+      return { success: true };
     } catch (err) {
-      callback('error', err);
+      return { success: false, err };
     }
   }
 
@@ -145,7 +145,6 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       kind: MediaKind;
       rtpParameters: mediasoupTypes.RtpParameters;
     },
-    callback: Function,
   ) {
     try {
       const peer = this.inMemoryStore.getOrCreatePeer(
@@ -164,15 +163,14 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       peer.producers.set(producer.id, producer);
 
-      callback({ id: producer.id });
-
       client.to(client.data.roomId).emit('newProducer', {
         producerId: producer.id,
         peerId: client.data.userId,
         kind,
       });
+      return { id: producer.id };
     } catch (err) {
-      callback('error', err);
+      return { success: false, err };
     }
   }
 
@@ -188,7 +186,6 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       producerId: string;
       rtpCapabilities: mediasoupTypes.RtpCapabilities;
     },
-    callback: Function,
   ) {
     try {
       const room = this.inMemoryStore.getOrCreateRoom(client.data.roomId);
@@ -210,20 +207,20 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       peer.consumers.set(consumer.id, consumer);
 
-      callback({
+      return {
         id: consumer.id,
         kind: consumer.kind,
         rtpParameters: consumer.rtpParameters,
         producerId: producerId,
         type: consumer.type,
-      });
+      };
     } catch (err) {
-      callback('error', err);
+      return { success: false, err };
     }
   }
 
   @SubscribeMessage('mediasoup:resume-consumer')
-  async resumeConsumer(client: Socket, consumerId: string, callback: Function) {
+  async resumeConsumer(client: Socket, consumerId: string) {
     try {
       const peer = this.inMemoryStore.getOrCreatePeer(
         client.data.roomId,
@@ -236,9 +233,9 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       await consumer.resume();
 
-      callback('success');
+      return { success: true };
     } catch (err) {
-      callback('error');
+      return { success: false };
     }
   }
 
