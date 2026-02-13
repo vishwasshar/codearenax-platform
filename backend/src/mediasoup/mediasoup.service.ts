@@ -1,9 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { createWorker, types as mediasoupTypes } from 'mediasoup';
-import {
-  MediaKind,
-  RtpCapabilities,
-} from 'mediasoup/node/lib/rtpParametersTypes';
+import { MediaKind } from 'mediasoup/node/lib/rtpParametersTypes';
 
 const DEFAULT_MEDIA_CODECS: mediasoupTypes.RtpCodecCapability[] = [
   {
@@ -11,7 +8,7 @@ const DEFAULT_MEDIA_CODECS: mediasoupTypes.RtpCodecCapability[] = [
     mimeType: 'audio/opus',
     clockRate: 48000,
     channels: 2,
-    preferredPayloadType: 0,
+    preferredPayloadType: 100,
   },
   {
     mimeType: 'video/H264',
@@ -24,11 +21,6 @@ const DEFAULT_MEDIA_CODECS: mediasoupTypes.RtpCodecCapability[] = [
       { type: 'ccm', parameter: 'fir' },
       { type: 'goog-remb' },
     ],
-    parameters: {
-      'level-asymmetry-allowed': 1,
-      'packetization-mode': 1,
-      'profile-level-id': '4d0032',
-    },
   },
 ];
 
@@ -38,7 +30,7 @@ export class MediasoupService {
 
   constructor() {}
 
-  async onModuelInit() {
+  async onModuleInit() {
     await this.createWorker();
   }
 
