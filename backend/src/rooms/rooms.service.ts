@@ -12,6 +12,7 @@ import { Socket } from 'socket.io';
 import * as Y from 'yjs';
 import { JwtService } from '@nestjs/jwt';
 import { RedisStoreService } from 'src/redis-store/redis-store.service';
+import { MediasoupService } from 'src/mediasoup/mediasoup.service';
 
 @Injectable()
 export class RoomsService {
@@ -20,6 +21,7 @@ export class RoomsService {
     private inMemoryStore: MemoryStoreService,
     private jwtService: JwtService,
     private redisStore: RedisStoreService,
+    private mediasoupService: MediasoupService,
   ) {}
 
   async authorizeUser(roomId: string, userId: string) {
@@ -118,6 +120,8 @@ export class RoomsService {
     this.redisStore.delete(`active-rooms:${roomId}`);
     this.redisStore.delete(`crdt-rooms:${roomId}`);
 
+    this.inMemoryStore.closeRoom(roomId);
+
     return true;
   }
 
@@ -205,9 +209,13 @@ export class RoomsService {
         this.inMemoryStore.crdtRooms.delete(roomId);
         this.redisStore.delete(`active-rooms:${roomId}`);
         this.redisStore.delete(`crdt-rooms:${roomId}`);
+
+        this.inMemoryStore.closeRoom(roomId);
       } else {
         // this.inMemoryStore.activeRooms.set(roomId, roomDetails);
         this.redisStore.set(`active-rooms:${roomId}`, roomDetails);
+
+        this.inMemoryStore.closePeer(roomId, client.data.userId);
       }
     } catch (err) {
       console.error('Disconnect error:', err);
@@ -255,6 +263,10 @@ export class RoomsService {
         this.redisStore.setYDoc(`crdt-rooms:${roomId}`, ydoc);
         // this.inMemoryStore.activeRooms.set(roomId, roomDetails);
         this.redisStore.set(`active-rooms:${roomId}`, roomDetails);
+
+        let mediaSoupRouter = await this.mediasoupService.createRouter();
+
+        this.inMemoryStore.getOrCreateRoom(roomId, mediaSoupRouter);
       } else {
         if (!roomId) {
           roomId = await this.redisStore.get(`room-slug:${slug}`)!;
@@ -283,6 +295,8 @@ export class RoomsService {
       client.join(roomId);
 
       client.data.roomId = roomId;
+
+      this.inMemoryStore.getOrCreatePeer(roomId, userId);
 
       client.emit(
         'crdt:doc',
@@ -315,9 +329,13 @@ export class RoomsService {
       this.inMemoryStore.crdtRooms.delete(roomId);
       this.redisStore.delete(`active-rooms:${roomId}`);
       this.redisStore.delete(`crdt-rooms${roomId}`);
+
+      this.inMemoryStore.closeRoom(roomId);
     } else {
       // this.inMemoryStore.activeRooms.set(roomId, roomDetails);
       this.redisStore.set(`active-rooms:${roomId}`, roomDetails);
+
+      this.inMemoryStore.closePeer(roomId, client.data.userId);
     }
   }
 }

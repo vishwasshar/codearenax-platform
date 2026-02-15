@@ -13,7 +13,6 @@ import { useCRDT } from "../hooks/useCRDT";
 import { MonacoBinding } from "y-monaco";
 
 import "./textEditor.css";
-import ChatWidget from "../components/ChatWidget";
 import {
   DndContext,
   PointerSensor,
@@ -27,6 +26,7 @@ import { getNearestCorner } from "../utils/getNearestCorner";
 import { Resizable } from "re-resizable";
 import { useRoomSocket } from "../hooks/useRoomSocket";
 import { FaLongArrowAltLeft } from "react-icons/fa";
+import ChatCallPanelLayout from "../components/ChatCallPanelLayout";
 
 const TextEditor = () => {
   const [corner, setCorner] = useState<Corner>("bottom-right");
@@ -202,7 +202,10 @@ const TextEditor = () => {
           fitTerminal();
         }}
       >
-        <div className="editor-chat-container" ref={editorChatContainer}>
+        <div
+          className="editor-chat-container relative"
+          ref={editorChatContainer}
+        >
           <Editor
             key={editorKey.current}
             className="flex-1"
@@ -213,10 +216,10 @@ const TextEditor = () => {
             options={{ readOnly: roomRole == "viewer" }}
           />
           <DndContext onDragEnd={handleDragEnd} sensors={sensors}>
-            <ChatWidget
+            <ChatCallPanelLayout
               corner={corner}
               socket={socket}
-              roomId={roomMongooseId}
+              roomMongooseId={roomMongooseId}
             />
           </DndContext>
         </div>
