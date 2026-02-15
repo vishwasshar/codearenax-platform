@@ -79,10 +79,10 @@ const ChatWidget: React.FC<{
       </button>
 
       <div className={`chat-panel ${showWidget ? "show" : "hide"}`}>
-        <div className="chat-header">
-          <h2>Room Chat</h2>
+        <div className="flex justify-between items-center p-3 bg-gray-900 border-b border-gray-700">
+          <h2 className="text-sm font-semibold text-white">Room Chat</h2>
           <button
-            className="btn btn-sm btn-ghost btn-circle"
+            className="btn btn-xs btn-circle btn-ghost"
             onClick={() => {
               setShowWidget((curr: Boolean) => !curr);
             }}
@@ -123,21 +123,30 @@ const ChatWidget: React.FC<{
         >
           <div className="h-full flex flex-col bg-black">
             <div
-              className="flex flex-col overflow-y-scroll"
+              className="flex-1 flex flex-col overflow-y-auto p-3 gap-2"
               ref={chatBodyRef}
               style={{ flex: 1 }}
             >
               <div ref={topSentinelRef} className="h-1" />
               {messages?.map(({ _id, message, sender }) => {
-                let cls = `chat-bubble max-w-[40%] wrap-break-word text-sm flex flex-col ${sender._id == userId ? "ms-auto text-end" : "self-start text-start"}`;
+                const isOwn = sender._id === userId;
 
                 return (
-                  <div key={_id} className="px-4 py-1 flex w-full relative">
-                    <div className={cls}>
+                  <div
+                    key={_id}
+                    className={`flex ${
+                      isOwn ? "justify-end" : "justify-start"
+                    }`}
+                  >
+                    <div
+                      className={`max-w-[70%] px-3 py-2 rounded-lg text-sm ${
+                        isOwn
+                          ? "bg-success/80 text-white"
+                          : "bg-gray-800 text-gray-200"
+                      }`}
+                    >
                       <p>{message}</p>
-                      <span
-                        className={`text-xs bottom-0 text-gray-400 overflow-hidden`}
-                      >
+                      <span className="text-[10px] opacity-60">
                         {sender.name}
                       </span>
                     </div>
@@ -146,18 +155,21 @@ const ChatWidget: React.FC<{
               })}
             </div>
             <form
-              className="message-form w-full flex justify-center items-center gap-2 py-2 px-4"
+              className="flex items-center gap-2 p-3 bg-gray-900 border-t border-gray-700"
               onSubmit={handleFormSubmit}
             >
               <input
                 type="text"
                 value={newMessage}
-                className="input outline-0 flex-1 border-0 focus:outline-0 focus:border-0 bg-[#1a1a1a] "
+                className="flex-1 px-3 py-2 rounded-md bg-gray-800 text-white outline-none border border-gray-700 focus:border-gray-500"
                 onChange={(e) => {
                   setNewMessage(e.target.value);
                 }}
               />
-              <button type="submit" className="btn btn-circle">
+              <button
+                type="submit"
+                className="btn btn-circle bg-success/80 border-none"
+              >
                 <IoSend size={15} />
               </button>
             </form>

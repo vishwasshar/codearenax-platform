@@ -36,8 +36,8 @@ const ChatCallPanelLayout: React.FC<{
     id: "chat-call-panel",
   });
 
-  const [showCallWidget, setShowCallWidget] = useState<Boolean>(false);
-  const [showChatWidget, setShowChatWidget] = useState<Boolean>(false);
+  const [showCallWidget, setShowCallWidget] = useState<boolean>(false);
+  const [showChatWidget, setShowChatWidget] = useState<boolean>(false);
 
   useEffect(() => {
     if (showCallWidget) setShowChatWidget(false);
@@ -62,7 +62,6 @@ const ChatCallPanelLayout: React.FC<{
     >
       <CallWidget
         socket={socket}
-        roomId={roomMongooseId}
         showWidget={showCallWidget}
         setShowWidget={setShowCallWidget}
       />
