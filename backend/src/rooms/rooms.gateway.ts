@@ -81,17 +81,12 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('mediasoup:get-router-rtp-capabilities')
   async getRouterRtpCapabilities(client: Socket) {
     const room = this.inMemoryStore.getOrCreateRoom(client.data.roomId);
-
-    const routerCapabilities =
-      await this.mediasoupService.getRouterRtpCapabilities(room.router);
-
-    return routerCapabilities;
+    return room.router.rtpCapabilities;
   }
 
   @SubscribeMessage('mediasoup:create-webrtc-transport')
   async createWebRtcTransport(client: Socket) {
     const room = this.inMemoryStore.getOrCreateRoom(client.data.roomId);
-
     const peer = this.inMemoryStore.getOrCreatePeer(
       client.data.roomId,
       client.data.userId,
@@ -110,152 +105,148 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('mediasoup:connect-transport')
-  async connectTransport(
-    client: Socket,
-    {
-      transportId,
-      dtlsParameters,
-    }: { transportId: string; dtlsParameters: mediasoupTypes.DtlsParameters },
-  ) {
-    try {
-      const peer = this.inMemoryStore.getOrCreatePeer(
-        client.data.roomId,
-        client.data.userId,
-      );
-
-      const transport = peer.transports.get(transportId);
-
-      await transport?.connect({ dtlsParameters });
-
-      return { success: true };
-    } catch (err) {
-      return { success: false, err };
-    }
-  }
-
-  @SubscribeMessage('mediasoup:produce')
-  async produce(
-    client: Socket,
-    {
-      transportId,
-      kind,
-      rtpParameters,
-    }: {
-      transportId: string;
-      kind: MediaKind;
-      rtpParameters: mediasoupTypes.RtpParameters;
-    },
-  ) {
-    try {
-      const peer = this.inMemoryStore.getOrCreatePeer(
-        client.data.roomId,
-        client.data.userId,
-      );
-
-      const transport = peer.transports.get(transportId);
-      if (!transport) throw new Error('Transport not found');
-
-      const producer = await this.mediasoupService.createProducer(
-        transport,
-        kind,
-        rtpParameters,
-      );
-
-      peer.producers.set(producer.id, producer);
-
-      client.to(client.data.roomId).emit('newProducer', {
-        producerId: producer.id,
-        peerId: client.data.userId,
-        kind,
-      });
-      return { id: producer.id };
-    } catch (err) {
-      return { success: false, err };
-    }
-  }
-
-  @SubscribeMessage('mediasoup:consume')
-  async consume(
-    client: Socket,
-    {
-      transportId,
-      producerId,
-      rtpCapabilities,
-    }: {
-      transportId: string;
-      producerId: string;
-      rtpCapabilities: mediasoupTypes.RtpCapabilities;
-    },
-  ) {
-    try {
-      const room = this.inMemoryStore.getOrCreateRoom(client.data.roomId);
-
-      const peer = this.inMemoryStore.getOrCreatePeer(
-        client.data.roomId,
-        client.data.userId,
-      );
-
-      const transport = peer.transports.get(transportId);
-      if (!transport) throw new Error('Transport not found');
-
-      const consumer = await this.mediasoupService.createConsumer(
-        room.router,
-        transport,
-        producerId,
-        rtpCapabilities,
-      );
-
-      peer.consumers.set(consumer.id, consumer);
-
-      return {
-        id: consumer.id,
-        kind: consumer.kind,
-        rtpParameters: consumer.rtpParameters,
-        producerId: producerId,
-        type: consumer.type,
-      };
-    } catch (err) {
-      return { success: false, err };
-    }
-  }
-
-  @SubscribeMessage('mediasoup:resume-consumer')
-  async resumeConsumer(client: Socket, consumerId: string) {
-    try {
-      const peer = this.inMemoryStore.getOrCreatePeer(
-        client.data.roomId,
-        client.data.userId,
-      );
-
-      const consumer = peer.consumers.get(consumerId);
-
-      if (!consumer) throw new Error('Consumer not found');
-
-      await consumer.resume();
-
-      return { success: true };
-    } catch (err) {
-      return { success: false };
-    }
-  }
-
-  @SubscribeMessage('mediasoup:close-producer')
-  async closeProducer(client: Socket, producerId: string) {
+  async connectTransport(client: Socket, { transportId, dtlsParameters }) {
     const peer = this.inMemoryStore.getOrCreatePeer(
       client.data.roomId,
       client.data.userId,
     );
 
-    const producer = peer.producers.get(producerId);
+    const transport = peer.transports.get(transportId);
+    await transport?.connect({ dtlsParameters });
+
+    return { success: true };
+  }
+
+  @SubscribeMessage('mediasoup:produce')
+  async produce(client: Socket, payload: any) {
+    const { transportId, kind, rtpParameters, appData } = payload;
+
+    const room = this.inMemoryStore.getOrCreateRoom(client.data.roomId);
+    const peer = this.inMemoryStore.getOrCreatePeer(
+      client.data.roomId,
+      client.data.userId,
+    );
+
+    const transport = peer.transports.get(transportId);
+    if (!transport) throw new Error('Transport not found');
+
+    const producer = await this.mediasoupService.createProducer(
+      transport,
+      kind,
+      rtpParameters,
+      appData,
+    );
+
+    producer.on('transportclose', () => {
+      producer.close();
+      peer.producers.delete(producer.id);
+
+      this.server.to(client.data.roomId).emit('producerClosed', producer.id);
+    });
+
+    peer.producers.set(producer.id, producer);
+
+    client.to(client.data.roomId).emit('newProducer', {
+      producerId: producer.id,
+      peerId: client.data.userId,
+      appData,
+    });
+
+    return { id: producer.id };
+  }
+
+  @SubscribeMessage('mediasoup:consume')
+  async consume(client: Socket, payload: any) {
+    const { transportId, producerId, rtpCapabilities } = payload;
+
+    const room = this.inMemoryStore.getOrCreateRoom(client.data.roomId);
+    const peer = this.inMemoryStore.getOrCreatePeer(
+      client.data.roomId,
+      client.data.userId,
+    );
+
+    const transport = peer.transports.get(transportId);
+    if (!transport) throw new Error('Transport not found');
+
+    // 🔥 Find Producer
+    let producer: mediasoupTypes.Producer | undefined;
+
+    for (const p of room.peers.values()) {
+      const found = p.producers.get(producerId);
+      if (found) {
+        producer = found;
+        break;
+      }
+    }
 
     if (!producer) throw new Error('Producer not found');
 
-    client.to(client.data.roomId).emit('producerClosed', {
-      producerId: producer.id,
+    const consumer = await this.mediasoupService.createConsumer(
+      room.router,
+      transport,
+      producer,
+      rtpCapabilities,
+    );
+
+    consumer.on('transportclose', () => {
+      consumer.close();
+      peer.consumers.delete(consumer.id);
     });
 
-    producer.close();
+    consumer.on('producerclose', () => {
+      consumer.close();
+      peer.consumers.delete(consumer.id);
 
-    peer.producers.delete(producerId);
+      this.server.to(client.id).emit('producerClosed', producerId);
+    });
+
+    peer.consumers.set(consumer.id, consumer);
+
+    return {
+      id: consumer.id,
+      producerId,
+      kind: consumer.kind,
+      rtpParameters: consumer.rtpParameters,
+      type: consumer.type,
+      appData: consumer.appData,
+    };
+  }
+
+  @SubscribeMessage('mediasoup:resume-consumer')
+  async resumeConsumer(client: Socket, consumerId: string) {
+    const peer = this.inMemoryStore.getOrCreatePeer(
+      client.data.roomId,
+      client.data.userId,
+    );
+
+    const consumer = peer.consumers.get(consumerId);
+    await consumer?.resume();
+
+    return { success: true };
+  }
+
+  @SubscribeMessage('mediasoup:get-existing-producers')
+  async getExistingProducers(client: Socket) {
+    const room = this.inMemoryStore.getOrCreateRoom(client.data.roomId);
+
+    const producers: {
+      producerId: string;
+      peerId: string;
+      appData: mediasoupTypes.AppData;
+    }[] = [];
+
+    for (const [peerId, peer] of room.peers.entries()) {
+      for (const producer of peer.producers.values()) {
+        if (peerId === client.data.userId) continue;
+
+        producers.push({
+          producerId: producer.id,
+          peerId,
+          appData: producer.appData,
+        });
+      }
+    }
+
+    return producers;
   }
 }
