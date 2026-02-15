@@ -3,10 +3,8 @@
   height: 100%;
 }
 
-.chat-panel {
-  position: absolute;
-  max-width: 50%;
-  max-height: 80%;
+.chat-panel,
+.call-panel {
   background: #111;
   z-index: 1000;
   border-radius: 0.5rem;
@@ -16,7 +14,8 @@
   pointer-events: auto;
 }
 
-.chat-header {
+.chat-header,
+.call-header {
   background: #1b1b1b;
   padding: 10px;
   text: center;
@@ -27,7 +26,8 @@
   align-items: center;
 }
 
-.chat-body {
+.chat-body,
+.call-body {
   flex: 1;
   padding: 8px;
   overflow-y: auto;
@@ -36,8 +36,7 @@
   scroll-behaviour: smooth;
 }
 
-.widgetToggle,
-.chat-panel {
+#chat-call-panel {
   transform-origin: bottom right;
   transition: opacity 500ms ease;
 }
@@ -46,6 +45,8 @@
   transform: scale(0);
   opacity: 0;
   pointer-events: none;
+  width: 0;
+  height: 0;
 }
 
 .show {
