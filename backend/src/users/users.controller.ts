@@ -67,15 +67,15 @@ export class UsersController {
   }
 
   @Post()
-  @UseGuards(JWTGuard)
+  // @UseGuards(JWTGuard)
   // Added Validation Pipe for Incoming Data and applied Transformation (Class-Validator and Class-Transformer Packages)
   async addNewUser(
     @Body(new ValidationPipe({ transform: true })) user: CreateUserDto,
     @Req() req: Request,
   ) {
     try {
-      if (req?.user?.role == UserRoles.ADMIN)
-        throw new HttpException('Unauthorized access', 401);
+      // if (req?.user?.role == UserRoles.ADMIN)
+      //   throw new HttpException('Unauthorized access', 401);
 
       return await this.usersService.addNewUser(user);
     } catch (error) {
