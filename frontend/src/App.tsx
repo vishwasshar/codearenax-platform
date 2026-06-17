@@ -8,13 +8,14 @@ import ProtectedRoutes from "./routes/ProtectedRoutes";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import Rooms from "./pages/Rooms";
 import { UpdateRoom } from "./pages/UpdateRoom";
+import Landing from "./pages/Landing";
 
 function App() {
   return (
     <>
       <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
         <Routes>
-          <Route path="/" element={<Login />} />
+          <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route element={<ProtectedRoutes />}>

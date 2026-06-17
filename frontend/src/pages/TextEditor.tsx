@@ -103,9 +103,11 @@ const TextEditor = () => {
 
   const handleCodeRun = useCallback(async () => {
     try {
-      await authRequest.post("/run-code", {
-        roomMongooseId,
+      const res: any = await authRequest.post("/run-code", {
+        roomId: roomMongooseId,
       });
+
+      terminalInstance.current?.write(res.data.output || res.data.error + "\n");
     } catch (err: any) {
       terminalInstance.current?.write(err.message + "\n");
     }

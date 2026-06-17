@@ -11,6 +11,7 @@ import { RunCodeService } from './run-code.service';
 import { MemoryStoreService } from 'src/memory-store/memory-store.service';
 import { RoomsGateway } from 'src/rooms/rooms.gateway';
 import { RedisStoreService } from 'src/redis-store/redis-store.service';
+import { ydocToString } from 'src/utils/ydocToString';
 
 @Controller('run-code')
 export class RunCodeController {
@@ -22,16 +23,25 @@ export class RunCodeController {
 
   @Post()
   async runCode(@Body(new ValidationPipe()) data: CodeSubmission) {
-    const room = await this.redisStore.get(`active-rooms:${data.roomId}`);
-    if (!room) throw new NotFoundException('Room not active');
+    try {
+      const ydoc = await this.redisStore.getYDoc(`crdt-rooms:${data.roomId}`);
+      if (!ydoc) throw new NotFoundException('Room not active');
+      const updatedContent = ydocToString(ydoc);
 
-    const res = await this.runCodeService.runCode(room.content, room.lang);
+      const room = await this.redisStore.get(`active-rooms:${data.roomId}`);
+      if (!room) throw new NotFoundException('Room not active');
 
-    if (!res)
-      throw new ServiceUnavailableException('Execution engine not working');
+      const res = await this.runCodeService.runCode(updatedContent, room.lang);
+      console.log(res);
 
-    this.roomsGateway.handleCodeOuput(data.roomId, res.output);
+      if (!res)
+        throw new ServiceUnavailableException('Execution engine not working');
 
-    return res;
+      this.roomsGateway.handleCodeOuput(data.roomId, res.output);
+
+      return res;
+    } catch (err) {
+      console.error(err);
+    }
   }
 }
