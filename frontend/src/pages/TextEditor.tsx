@@ -27,11 +27,12 @@ import { Resizable } from "re-resizable";
 import { useRoomSocket } from "../hooks/useRoomSocket";
 import { FaLongArrowAltLeft } from "react-icons/fa";
 import ChatCallPanelLayout from "../components/ChatCallPanelLayout";
+import CollaboratorsList from "../components/CollaboratorsList";
 
 const TextEditor = () => {
   const [corner, setCorner] = useState<Corner>("bottom-right");
 
-  const { token, name: userName } = useSelector((state: any) => state.user);
+  const { token, name: userName, userId } = useSelector((state: any) => state.user);
 
   const { roomId } = useParams();
   const socket = useRoomSocket(token, roomId || "");
@@ -216,8 +217,10 @@ const TextEditor = () => {
             </option>
           ))}
         </select>
-        {roomRole != "viewer" && (
-          <div className="ms-auto flex gap-2">
+        <div className="ms-auto flex items-center gap-3">
+          <CollaboratorsList socket={socket} currentUserId={userId} />
+          {roomRole != "viewer" && (
+          <div className="flex gap-2">
             <button
               className="btn btn-sm bg-success/80"
               onClick={handleCodeSave}
@@ -231,6 +234,7 @@ const TextEditor = () => {
           </div>
         )}
       </div>
+    </div>
       <Resizable
         defaultSize={{
           height: "80%",

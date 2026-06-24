@@ -200,6 +200,11 @@ export class RoomsService {
       roomDetails.activeUsers = roomDetails.activeUsers.filter(
         (id: string) => id !== client.id,
       );
+      if (Array.isArray(roomDetails.activeUserInfos)) {
+        roomDetails.activeUserInfos = roomDetails.activeUserInfos.filter(
+          (u: any) => u.userId !== client.data.userId,
+        );
+      }
 
       if (roomDetails?.activeUsers?.length === 0) {
         await this.saveCodeSnapshot(roomId);
@@ -213,6 +218,8 @@ export class RoomsService {
         await this.redisStore.set(`active-rooms:${roomId}`, roomDetails);
 
         this.inMemoryStore.closePeer(roomId, client.data.userId);
+
+        client.to(roomId).emit('room:user-left', { userId: client.data.userId });
       }
     } catch (err) {
       console.error('Disconnect error:', err);
@@ -243,6 +250,7 @@ export class RoomsService {
         if (slug) await this.redisStore.set(`room-slug:${slug}`, roomId);
 
         roomDetails.activeUsers = [];
+        roomDetails.activeUserInfos = [];
         roomDetails.isDirty = false;
 
         ydoc = stringToYDoc(roomDetails.content);
@@ -285,11 +293,24 @@ export class RoomsService {
         roomDetails.activeUsers.push(client.id);
       }
 
-      client.join(roomId);
+      await client.join(roomId);
 
       client.data.roomId = roomId;
 
       this.inMemoryStore.getOrCreatePeer(roomId, userId);
+
+      if (!Array.isArray(roomDetails.activeUserInfos)) {
+        roomDetails.activeUserInfos = [];
+      }
+      const userInfo = { userId, name: client.data.name, role: hasAccess.role };
+      if (!roomDetails.activeUserInfos.some((u: any) => u.userId === userId)) {
+        roomDetails.activeUserInfos.push(userInfo);
+      }
+
+      await this.redisStore.set(`active-rooms:${roomId}`, roomDetails);
+
+      client.emit('room:current-users', roomDetails.activeUserInfos);
+      client.to(roomId).emit('room:user-joined', userInfo);
 
       client.emit(
         'crdt:doc',
@@ -315,6 +336,11 @@ export class RoomsService {
     roomDetails.activeUsers = roomDetails.activeUsers.filter(
       (socketId: string) => socketId != client.id,
     );
+    if (Array.isArray(roomDetails.activeUserInfos)) {
+      roomDetails.activeUserInfos = roomDetails.activeUserInfos.filter(
+        (u: any) => u.userId !== client.data.userId,
+      );
+    }
 
     if (roomDetails?.activeUsers?.length == 0) {
       await this.saveCodeSnapshot(roomId);
@@ -329,6 +355,7 @@ export class RoomsService {
       this.inMemoryStore.closePeer(roomId, client.data.userId);
     }
 
+    client.to(roomId).emit('room:user-left', { userId: client.data.userId });
     client.leave(roomId);
   }
 }
