@@ -54,3 +54,13 @@
   opacity: 1;
   pointer-events: auto;
 }
+
+/* Remote cursor decorations — base styles */
+.yRemoteSelection {
+  opacity: 0.5 !important;
+}
+
+.yRemoteSelectionHead {
+  height: 1.2em !important;
+  position: relative;
+}

@@ -74,6 +74,11 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.crdtService.updateRoomLang(client, data);
   }
 
+  @SubscribeMessage('crdt:awareness-update')
+  handleAwarenessUpdate(client: Socket, data: { update: number[] }) {
+    client.to(client.data.roomId).emit('crdt:awareness-update', data.update);
+  }
+
   handleCodeOuput(roomId: string, output: string) {
     this.server.to(roomId).emit('crdt:output', output);
   }

@@ -31,19 +31,20 @@ import ChatCallPanelLayout from "../components/ChatCallPanelLayout";
 const TextEditor = () => {
   const [corner, setCorner] = useState<Corner>("bottom-right");
 
-  const { token } = useSelector((state: any) => state.user);
+  const { token, name: userName } = useSelector((state: any) => state.user);
 
   const { roomId } = useParams();
   const socket = useRoomSocket(token, roomId || "");
   const {
     ydoc,
+    awareness,
     language,
     handleLangChange,
     roomMongooseId,
     roomRole,
     handleCodeSave,
     saving,
-  } = useCRDT(socket);
+  } = useCRDT(socket, userName);
 
   const terminalRef = useRef<HTMLDivElement | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -119,13 +120,49 @@ const TextEditor = () => {
     }
   }, [ydoc]);
 
+  useEffect(() => {
+    if (!awareness) return;
+
+    let styleEl = document.getElementById("remote-cursor-styles");
+    if (!styleEl) {
+      styleEl = document.createElement("style");
+      styleEl.id = "remote-cursor-styles";
+      document.head.appendChild(styleEl);
+    }
+
+    const updateCursorStyles = () => {
+      const rules: string[] = [];
+      awareness.getStates().forEach((state, clientID) => {
+        if (clientID === awareness.clientID) return;
+        const user = state.user as { name?: string; color?: string } | undefined;
+        if (!user?.color) return;
+
+        const color = user.color;
+        const name = user.name || "Unknown";
+        rules.push(
+          `.yRemoteSelection-${clientID} { background-color: ${color}44 !important; }`,
+          `.yRemoteSelectionHead-${clientID} { border-left: 2px solid ${color} !important; position: relative; }`,
+          `.yRemoteSelectionHead-${clientID}::after { content: '${name}'; position: absolute; top: -1.4em; left: -4px; font-size: 11px; padding: 1px 5px; border-radius: 3px 3px 3px 0; white-space: nowrap; color: #fff; background: ${color}; line-height: 1.4; opacity: 0; pointer-events: none; transition: opacity 0.12s ease; z-index: 10; }`,
+          `.yRemoteSelectionHead-${clientID}:hover::after { opacity: 1; }`,
+        );
+      });
+      styleEl!.textContent = rules.join("\n");
+    };
+
+    updateCursorStyles();
+    awareness.on("change", updateCursorStyles);
+    return () => {
+      awareness.off("change", updateCursorStyles);
+    };
+  }, [awareness]);
+
   const handleEditorMount: OnMount = (editor) => {
     const yText = ydoc?.getText("monaco");
     const model = editor.getModel();
 
     if (!yText || !model) return;
 
-    new MonacoBinding(yText, model, new Set([editor]));
+    new MonacoBinding(yText, model, new Set([editor]), awareness);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
