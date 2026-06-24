@@ -41,13 +41,13 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('room:join')
-  handleRoomJoin(client: Socket, roomId: string) {
-    this.roomService.handleRoomJoin(client, roomId);
+  async handleRoomJoin(client: Socket, roomId: string) {
+    await this.roomService.handleRoomJoin(client, roomId);
   }
 
   @SubscribeMessage('room:leave')
-  leaveRoom(client: Socket) {
-    this.roomService.leaveRoom(client);
+  async leaveRoom(client: Socket) {
+    await this.roomService.leaveRoom(client);
   }
 
   handleRoomDelete(roomId: string) {
@@ -65,13 +65,13 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('crdt:code-edit')
-  updateRoom(client: Socket, data: { update: number[] }) {
-    this.crdtService.updateRoom(client, data);
+  async updateRoom(client: Socket, data: { update: number[] }) {
+    await this.crdtService.updateRoom(client, data);
   }
 
   @SubscribeMessage('crdt:lang-change')
   async updateRoomLang(client: Socket, data: { lang: LangTypes }) {
-    this.crdtService.updateRoomLang(client, data);
+    await this.crdtService.updateRoomLang(client, data);
   }
 
   @SubscribeMessage('crdt:awareness-update')

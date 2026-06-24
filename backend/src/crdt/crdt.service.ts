@@ -16,19 +16,36 @@ export class CrdtService {
     private redisStore: RedisStoreService,
   ) {}
 
+  private persistTimeouts = new Map<string, NodeJS.Timeout>();
+
+  private schedulePersist(roomId: string) {
+    const existing = this.persistTimeouts.get(roomId);
+    if (existing) clearTimeout(existing);
+
+    this.persistTimeouts.set(
+      roomId,
+      setTimeout(async () => {
+        const ydoc = this.inMemoryStore.crdtRooms.get(roomId);
+        if (ydoc) {
+          await this.redisStore.setYDoc(`crdt-rooms:${roomId}`, ydoc);
+        }
+        this.persistTimeouts.delete(roomId);
+      }, 2000),
+    );
+  }
+
   async updateRoom(client: Socket, data: { update: number[] }) {
     const { update } = data;
 
     const roomId = client.data.roomId;
+    if (!roomId) return;
 
-    // const roomDetails = this.inMemoryStore.activeRooms.get(roomId);
     const roomDetails = await this.redisStore.get(`active-rooms:${roomId}`);
     const ydoc = this.inMemoryStore.crdtRooms.get(roomId);
-    // const ydoc = await this.redisStore.getYDoc(`crdt-rooms:${roomId}`);
     const userId = client.data.userId;
 
     if (!roomDetails || !ydoc) return;
-    if (!client.data.userId) return;
+    if (!userId) return;
 
     const hasEditAccess = roomDetails?.accessList?.some(
       (u: any) =>
@@ -40,14 +57,13 @@ export class CrdtService {
 
     if (!roomDetails.isDirty) {
       roomDetails.isDirty = true;
-      // this.inMemoryStore.activeRooms.set(roomId, roomDetails);
-      this.redisStore.set(`active-rooms:${roomId}`, roomDetails);
+      await this.redisStore.set(`active-rooms:${roomId}`, roomDetails);
     }
 
     const updateBuffer = Uint8Array.from(update);
     Y.applyUpdate(ydoc, updateBuffer);
 
-    this.redisStore.setYDoc(`crdt-rooms:${roomId}`, ydoc);
+    this.schedulePersist(roomId);
 
     client.to(roomId).emit('crdt:code-update', updateBuffer);
   }

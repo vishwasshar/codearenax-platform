@@ -64,7 +64,7 @@ export class ChatService {
     const newMessage = new this.chatModel({
       message,
       roomId,
-      sender: { _id: userId, name: client.data.name },
+      sender: userId,
     });
 
     await newMessage.save();

@@ -6,10 +6,10 @@ import * as Y from 'yjs';
 export class RedisStoreService {
   constructor(@Inject('REDIS_CLIENT') private redis: Redis) {}
 
-  set(key: string, value: any) {
+  async set(key: string, value: any) {
     const data = JSON.stringify(value);
 
-    this.redis.set(key, data, 'EX', process.env.REDIS_TTL || 84400);
+    await this.redis.set(key, data, 'EX', process.env.REDIS_TTL || 84400);
   }
 
   async get(key: string) {
@@ -36,7 +36,7 @@ export class RedisStoreService {
     return ydoc;
   }
 
-  delete(key: string) {
-    return this.redis.del(key);
+  async delete(key: string) {
+    return await this.redis.del(key);
   }
 }

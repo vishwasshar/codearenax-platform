@@ -41,7 +41,7 @@ export const useChat = (socket: Socket, roomId: string | undefined) => {
       socket.off("chat:new-message", handleNewMessage);
       socket.off("chat:ack", handleChatAck);
     };
-  }, []);
+  }, [socket]);
 
   const sendMessage = (message: string) => {
     const tempId = crypto.randomUUID();

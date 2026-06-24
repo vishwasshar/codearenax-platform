@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { createWorker, types as mediasoupTypes } from 'mediasoup';
 import { MediaKind } from 'mediasoup/node/lib/rtpParametersTypes';
 
@@ -18,6 +18,7 @@ const DEFAULT_MEDIA_CODECS: mediasoupTypes.RouterRtpCodecCapability[] = [
 
 @Injectable()
 export class MediasoupService {
+  private readonly logger = new Logger(MediasoupService.name);
   worker: mediasoupTypes.Worker;
 
   async onModuleInit() {
@@ -35,8 +36,7 @@ export class MediasoupService {
     });
 
     this.worker.on('died', () => {
-      console.error('Mediasoup worker died');
-      process.exit(1);
+      this.logger.error('Mediasoup worker died — subsequent calls will fail until server restart');
     });
   }
 

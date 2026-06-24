@@ -22,7 +22,7 @@ authRequest.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     } else {
-      return Promise.reject();
+      return Promise.reject(new Error("No auth token"));
     }
 
     return config;
@@ -36,8 +36,8 @@ authRequest.interceptors.response.use(
   },
   (err: AxiosError<any>) => {
     console.log(err);
-    toast.error(err.message);
-    throw new Error(err.message);
+    toast.error(err.response?.data?.message || err.message);
+    return Promise.reject(err);
   },
 );
 
@@ -47,7 +47,7 @@ unAuthRequest.interceptors.response.use(
   },
   (err: AxiosError<any>) => {
     console.log(err);
-    toast.error(err.message);
-    throw new Error(err.message);
+    toast.error(err.response?.data?.message || err.message);
+    return Promise.reject(err);
   },
 );

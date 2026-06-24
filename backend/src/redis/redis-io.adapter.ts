@@ -10,7 +10,7 @@ export class RedisIoAdapter extends IoAdapter {
     this.pubClient = createClient({ url: process.env.REDIS_URL });
     this.subClient = this.pubClient.duplicate();
 
-    await Promise.all[(this.pubClient.connect(), this.subClient.connect())];
+    await Promise.all([this.pubClient.connect(), this.subClient.connect()]);
   }
 
   createIOServer(port: number, options?: any) {

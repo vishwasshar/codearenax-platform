@@ -70,14 +70,16 @@ const TextEditor = () => {
       term.write("Welcome to Code Arena X Terminal\n");
       terminalInstance.current = term;
       fitAddonRef.current = fitAddOn;
-      window.addEventListener("resize", () => fitAddOn?.fit());
+
+      const handleResize = () => fitAddOn?.fit();
+      window.addEventListener("resize", handleResize);
 
       return () => {
         term.dispose();
-        window.removeEventListener("resize", () => {});
+        window.removeEventListener("resize", handleResize);
       };
     }
-  }, [terminalRef, editorKey.current, ydoc]);
+  }, [ydoc]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key === "s") {

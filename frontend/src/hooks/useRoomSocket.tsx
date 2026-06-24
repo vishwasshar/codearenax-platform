@@ -22,7 +22,6 @@ export const useRoomSocket = (token: string, roomId: string) => {
     };
 
     socket.emit("room:join", roomId);
-
     socket.on("room:error", handleError);
 
     return () => {

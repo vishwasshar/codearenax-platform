@@ -4,6 +4,7 @@ import {
   ExecutionContext,
   Injectable,
 } from '@nestjs/common';
+import mongoose from 'mongoose';
 import { RoomsService } from './rooms.service';
 
 @Injectable()
@@ -12,10 +13,13 @@ export class RoomsGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest();
 
-    if (!req.params.roomId) throw new BadRequestException('roomId Missing');
+    const roomId = req.params.roomId;
+    if (!roomId) throw new BadRequestException('roomId Missing');
+    if (!mongoose.Types.ObjectId.isValid(roomId))
+      throw new BadRequestException('Invalid roomId');
 
     const role = await this.roomService.authorizeUser(
-      req.params.roomId,
+      roomId,
       req.user._id,
     );
 
