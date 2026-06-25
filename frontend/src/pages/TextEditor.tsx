@@ -32,7 +32,11 @@ import CollaboratorsList from "../components/CollaboratorsList";
 const TextEditor = () => {
   const [corner, setCorner] = useState<Corner>("bottom-right");
 
-  const { token, name: userName, userId } = useSelector((state: any) => state.user);
+  const {
+    token,
+    name: userName,
+    userId,
+  } = useSelector((state: any) => state.user);
 
   const { roomId } = useParams();
   const socket = useRoomSocket(token, roomId || "");
@@ -137,7 +141,9 @@ const TextEditor = () => {
       const rules: string[] = [];
       awareness.getStates().forEach((state, clientID) => {
         if (clientID === awareness.clientID) return;
-        const user = state.user as { name?: string; color?: string } | undefined;
+        const user = state.user as
+          | { name?: string; color?: string }
+          | undefined;
         if (!user?.color) return;
 
         const color = user.color;
@@ -220,21 +226,24 @@ const TextEditor = () => {
         <div className="ms-auto flex items-center gap-3">
           <CollaboratorsList socket={socket} currentUserId={userId} />
           {roomRole != "viewer" && (
-          <div className="flex gap-2">
-            <button
-              className="btn btn-sm bg-success/80"
-              onClick={handleCodeSave}
-              disabled={saving}
-            >
-              {saving ? "Saving..." : "Save"}
-            </button>
-            <button className="btn btn-sm bg-accent/80" onClick={handleCodeRun}>
-              Run
-            </button>
-          </div>
-        )}
+            <div className="flex gap-2">
+              <button
+                className="btn btn-sm bg-success/80"
+                onClick={handleCodeSave}
+                disabled={saving}
+              >
+                {saving ? "Saving..." : "Save"}
+              </button>
+              <button
+                className="btn btn-sm bg-accent/80"
+                onClick={handleCodeRun}
+              >
+                Run
+              </button>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
       <Resizable
         defaultSize={{
           height: "80%",
@@ -271,7 +280,7 @@ const TextEditor = () => {
       </Resizable>
       <div className="w-md h-1 mx-auto my-1 bg-base-100 rounded-4xl"></div>
       <div className="p-1 h-[100%] overflow-auto" style={{ flex: 1 }}>
-        <div key={editorKey.current} ref={terminalRef} className="h-full"></div>
+        <div ref={terminalRef} className="h-full"></div>
       </div>
     </div>
   );
