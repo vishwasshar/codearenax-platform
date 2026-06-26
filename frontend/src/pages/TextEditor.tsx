@@ -28,6 +28,7 @@ import { useRoomSocket } from "../hooks/useRoomSocket";
 import { FaLongArrowAltLeft } from "react-icons/fa";
 import ChatCallPanelLayout from "../components/ChatCallPanelLayout";
 import CollaboratorsList from "../components/CollaboratorsList";
+import ConnectionStatusBanner from "../components/ConnectionStatusBanner";
 
 const TextEditor = () => {
   const [corner, setCorner] = useState<Corner>("bottom-right");
@@ -205,6 +206,7 @@ const TextEditor = () => {
     </div>
   ) : (
     <div className="w-full h-screen flex flex-col">
+      <ConnectionStatusBanner socket={socket} />
       <div className="flex items-center h-fit px-2 py-1 gap-4">
         <Link to={"/rooms"} className="btn btn-sm">
           <FaLongArrowAltLeft /> All Rooms
