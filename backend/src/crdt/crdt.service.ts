@@ -5,6 +5,7 @@ import { AccessRole } from 'src/common/enums/access-role.enum';
 import { MemoryStoreService } from 'src/memory-store/memory-store.service';
 import { RedisStoreService } from 'src/redis-store/redis-store.service';
 import { RoomsService } from 'src/rooms/rooms.service';
+import { ReplayService } from 'src/replay/replay.service';
 import * as Y from 'yjs';
 
 @Injectable()
@@ -14,6 +15,7 @@ export class CrdtService {
     private roomService: RoomsService,
     private inMemoryStore: MemoryStoreService,
     private redisStore: RedisStoreService,
+    private replayService: ReplayService,
   ) {}
 
   private persistTimeouts = new Map<string, NodeJS.Timeout>();
@@ -61,18 +63,23 @@ export class CrdtService {
     }
 
     const updateBuffer = Uint8Array.from(update);
+
+    const prevStateVector = Y.encodeStateVector(ydoc);
     Y.applyUpdate(ydoc, updateBuffer);
+    const serverDelta = Y.diffUpdate(Y.encodeStateAsUpdate(ydoc), prevStateVector);
 
     this.schedulePersist(roomId);
 
     client.to(roomId).emit('crdt:code-update', updateBuffer);
+
+    const currentText = ydoc.getText('monaco').toString();
+    this.replayService.recordEdit(roomId, userId, serverDelta, currentText).catch(() => {});
   }
 
   async updateRoomLang(client: Socket, data: { lang: LangTypes }) {
     const { lang } = data;
     const roomId = client.data.roomId;
 
-    // const roomDetails = this.inMemoryStore.activeRooms.get(roomId);
     const roomDetails = await this.redisStore.get(`active-rooms:${roomId}`);
 
     const userId = client.data.userId;

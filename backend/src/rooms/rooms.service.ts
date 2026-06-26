@@ -13,6 +13,7 @@ import * as Y from 'yjs';
 import { JwtService } from '@nestjs/jwt';
 import { RedisStoreService } from 'src/redis-store/redis-store.service';
 import { MediasoupService } from 'src/mediasoup/mediasoup.service';
+import { ReplayService } from 'src/replay/replay.service';
 
 @Injectable()
 export class RoomsService {
@@ -22,6 +23,7 @@ export class RoomsService {
     private jwtService: JwtService,
     private redisStore: RedisStoreService,
     private mediasoupService: MediasoupService,
+    private replayService: ReplayService,
   ) {}
 
   async authorizeUser(roomId: string, userId: string) {
@@ -120,6 +122,8 @@ export class RoomsService {
     await this.redisStore.delete(`crdt-rooms:${roomId}`);
 
     this.inMemoryStore.closeRoom(roomId);
+
+    await this.replayService.deleteRoomHistory(roomId);
 
     return true;
   }

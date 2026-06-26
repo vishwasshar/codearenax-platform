@@ -9,6 +9,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import Rooms from "./pages/Rooms";
 import { UpdateRoom } from "./pages/UpdateRoom";
 import Landing from "./pages/Landing";
+import CodeReplay from "./pages/CodeReplay";
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
             <Route path="/rooms" element={<Rooms />} />
             <Route path="/create-room" element={<CreateRoom />} />
             <Route path="/update-room/:roomId" element={<UpdateRoom />} />
+            <Route path="/room/:roomId/replay" element={<CodeReplay />} />
             <Route path="/room/:roomId" element={<TextEditor />} />
           </Route>
         </Routes>

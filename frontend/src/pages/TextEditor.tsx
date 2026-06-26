@@ -225,6 +225,9 @@ const TextEditor = () => {
         </select>
         <div className="ms-auto flex items-center gap-3">
           <CollaboratorsList socket={socket} currentUserId={userId} />
+          <Link to={`/room/${roomId}/replay`} className="btn btn-sm">
+            Replay
+          </Link>
           {roomRole != "viewer" && (
             <div className="flex gap-2">
               <button

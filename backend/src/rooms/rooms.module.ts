@@ -9,6 +9,7 @@ import { CRDTModule } from 'src/crdt/crdt.module';
 import { MemoryStoreModule } from 'src/memory-store/memory-store.module';
 import { ChatModule } from 'src/chat/chat.module';
 import { MediasoupModule } from 'src/mediasoup/mediasoup.module';
+import { ReplayModule } from 'src/replay/replay.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { MediasoupModule } from 'src/mediasoup/mediasoup.module';
     ChatModule,
     forwardRef(() => CRDTModule),
     MediasoupModule,
+    ReplayModule,
   ],
   controllers: [RoomsController],
   providers: [RoomsService, RoomsGateway, JwtService],

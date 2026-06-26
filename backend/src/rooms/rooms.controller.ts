@@ -24,6 +24,7 @@ import { ChatService } from 'src/chat/chat.service';
 import { RoomsGuard } from './rooms.guard';
 import { RoomsGateway } from './rooms.gateway';
 import { AccessRole } from 'src/common/enums/access-role.enum';
+import { ReplayService } from 'src/replay/replay.service';
 
 @Controller('rooms')
 export class RoomsController {
@@ -31,6 +32,7 @@ export class RoomsController {
     private readonly roomsService: RoomsService,
     private readonly chatService: ChatService,
     private readonly roomGateway: RoomsGateway,
+    private readonly replayService: ReplayService,
   ) {}
 
   @Get()
@@ -144,6 +146,36 @@ export class RoomsController {
     const updatedRoom = await this.roomsService.saveCodeSnapshot(roomId);
 
     return updatedRoom;
+  }
+
+  @Get(':roomId/replay')
+  @UseGuards(JWTGuard)
+  async getReplayData(@Param('roomId') roomId: string, @Req() req: Request) {
+    let room;
+    if (mongoose.Types.ObjectId.isValid(roomId)) {
+      room = await this.roomsService.getRoomById(roomId);
+    } else {
+      room = await this.roomsService.getRoomBySlug(roomId);
+    }
+
+    if (!room) throw new HttpException('Room Not Found', 404);
+
+    const user = req.user as JwtPayload;
+    const hasAccess = (room.accessList as any[])?.some(
+      (a: any) => a.user?._id?.toString() === user._id?.toString(),
+    );
+    if (!hasAccess) throw new UnauthorizedException('Not Accessible');
+
+    const roomMongoId = room._id.toString();
+    const edits = await this.replayService.getEdits(roomMongoId);
+    const sessions = await this.replayService.getSessions(roomMongoId);
+
+    return {
+      lang: room.lang || 'javascript',
+      content: room.content || '',
+      edits,
+      sessions,
+    };
   }
 
   @Post(':roomId/access')
