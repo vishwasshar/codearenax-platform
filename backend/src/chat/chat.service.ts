@@ -69,8 +69,10 @@ export class ChatService {
 
     await newMessage.save();
 
-    client.to(roomId).emit('chat:new-message', newMessage);
+    const populated = await newMessage.populate('sender', 'name');
 
-    client.emit('chat:ack', newMessage, tempId);
+    client.to(roomId).emit('chat:new-message', populated);
+
+    client.emit('chat:ack', populated, tempId);
   }
 }

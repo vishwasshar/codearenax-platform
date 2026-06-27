@@ -329,6 +329,13 @@ export class RoomsService {
     }
   }
 
+  async handleGetUsers(client: Socket, roomId: string) {
+    if (!roomId) return;
+    const roomDetails = await this.redisStore.get(`active-rooms:${roomId}`);
+    if (!roomDetails) return;
+    client.emit('room:current-users', roomDetails.activeUserInfos);
+  }
+
   async leaveRoom(client: Socket) {
     const roomId = client.data.roomId;
     if (!roomId) return;

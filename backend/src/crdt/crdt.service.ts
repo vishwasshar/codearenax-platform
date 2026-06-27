@@ -97,9 +97,7 @@ export class CrdtService {
       return;
 
     roomDetails.lang = lang;
-    this.redisStore.set(`active-rooms:${roomId}`, roomDetails);
-
+    await this.redisStore.set(`active-rooms:${roomId}`, roomDetails);
     await this.roomService.updateRoom(roomId, { lang });
-    client.to(roomId).emit('crdt:lang-change', lang);
   }
 }

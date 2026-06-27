@@ -10,6 +10,7 @@ export type Collaborator = {
 export const useActiveCollaborators = (
   socket: Socket | null,
   currentUserId: string | undefined,
+  roomId?: string,
 ) => {
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
 
@@ -37,12 +38,14 @@ export const useActiveCollaborators = (
     socket.on("room:user-joined", handleUserJoined);
     socket.on("room:user-left", handleUserLeft);
 
+    if (roomId) socket.emit("room:get-users", roomId);
+
     return () => {
       socket.off("room:current-users", handleCurrentUsers);
       socket.off("room:user-joined", handleUserJoined);
       socket.off("room:user-left", handleUserLeft);
     };
-  }, [socket, currentUserId]);
+  }, [socket, currentUserId, roomId]);
 
   return collaborators;
 };

@@ -50,6 +50,11 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     await this.roomService.leaveRoom(client);
   }
 
+  @SubscribeMessage('room:get-users')
+  async getUsers(client: Socket, roomId: string) {
+    await this.roomService.handleGetUsers(client, roomId);
+  }
+
   handleRoomDelete(roomId: string) {
     setTimeout(() => {
       this.server.in(roomId).disconnectSockets();
@@ -71,6 +76,9 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('crdt:lang-change')
   async updateRoomLang(client: Socket, data: { lang: LangTypes }) {
+    const roomId = client.data.roomId;
+    if (!roomId) return;
+    client.to(roomId).emit('crdt:lang-change', data.lang);
     await this.crdtService.updateRoomLang(client, data);
   }
 

@@ -5,39 +5,24 @@ import * as monaco from "monaco-editor";
 import { LangTypes } from "../commons/vars/lang-types";
 import { Link, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { Terminal } from "@xterm/xterm";
-import { FitAddon } from "xterm-addon-fit";
-import "@xterm/xterm/css/xterm.css";
 import { authRequest } from "../utils/axios.interceptor";
 import { useCRDT } from "../hooks/useCRDT";
 import { MonacoBinding } from "y-monaco";
 
 import "./textEditor.css";
-import {
-  DndContext,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-
-import type { Corner } from "../commons/vars/corner-types";
-import { getNearestCorner } from "../utils/getNearestCorner";
-import { Resizable } from "re-resizable";
 import { useRoomSocket } from "../hooks/useRoomSocket";
-import { FaLongArrowAltLeft } from "react-icons/fa";
-import ChatCallPanelLayout from "../components/ChatCallPanelLayout";
-import CollaboratorsList from "../components/CollaboratorsList";
-import ConnectionStatusBanner from "../components/ConnectionStatusBanner";
+import { FaLongArrowAltLeft, FaPlay, FaSave, FaHistory } from "react-icons/fa";
+import { FiSidebar } from "react-icons/fi";
+import StatusBar from "../components/StatusBar";
+import TerminalPanel, {
+  type TerminalHandle,
+} from "../components/TerminalPanel";
+import CollabSidebar from "../components/CollabSidebar";
 
 const TextEditor = () => {
-  const [corner, setCorner] = useState<Corner>("bottom-right");
-
-  const {
-    token,
-    name: userName,
-    userId,
-  } = useSelector((state: any) => state.user);
+  const { token, name: userName, userId } = useSelector(
+    (state: any) => state.user,
+  );
 
   const { roomId } = useParams();
   const socket = useRoomSocket(token, roomId || "");
@@ -52,81 +37,48 @@ const TextEditor = () => {
     saving,
   } = useCRDT(socket, userName);
 
-  const terminalRef = useRef<HTMLDivElement | null>(null);
-  const fitAddonRef = useRef<FitAddon | null>(null);
-  const terminalInstance = useRef<Terminal | null>(null);
-  const editorChatContainer = useRef<HTMLDivElement>(null);
   const editorKey = useRef(0);
-
-  useEffect(() => {
-    if (terminalRef.current) {
-      const term = new Terminal({
-        convertEol: true,
-        cursorBlink: true,
-        scrollback: 1000,
-        fontSize: 14,
-        theme: { background: "#1e1e1e" },
-      });
-
-      const fitAddOn = new FitAddon();
-      term.loadAddon(fitAddOn);
-      term.open(terminalRef.current);
-      fitAddOn.fit();
-
-      term.write("Welcome to Code Arena X Terminal\n");
-      terminalInstance.current = term;
-      fitAddonRef.current = fitAddOn;
-
-      const handleResize = () => fitAddOn?.fit();
-      window.addEventListener("resize", handleResize);
-
-      return () => {
-        term.dispose();
-        window.removeEventListener("resize", handleResize);
-      };
-    }
-  }, [ydoc]);
-
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === "s") {
-      e.preventDefault();
-    }
-
-    if ((e.metaKey || e.ctrlKey) && (e.key === "Enter" || e.key == "'")) {
-      e.preventDefault();
-      handleCodeRun();
-    }
-  }, []);
-
-  useEffect(() => {
-    document.addEventListener("keydown", handleKeyDown);
-
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [handleKeyDown]);
-
-  const handleCodeValidation = (markers: monaco.editor.IMarker[]) => {
-    markers.forEach((marker: monaco.editor.IMarker) => {
-      console.log(marker.message);
-    });
-  };
-
-  const handleCodeRun = useCallback(async () => {
-    try {
-      const res: any = await authRequest.post("/run-code", {
-        roomId: roomMongooseId,
-      });
-
-      terminalInstance.current?.write(res.data.output || res.data.error + "\n");
-    } catch (err: any) {
-      terminalInstance.current?.write(err.message + "\n");
-    }
-  }, [authRequest, roomMongooseId]);
+  const [editorInstance, setEditorInstance] =
+    useState<monaco.editor.IStandaloneCodeEditor | null>(null);
+  const terminalRef = useRef<TerminalHandle | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
     if (ydoc) {
       editorKey.current += 1;
     }
   }, [ydoc]);
+
+  const handleCodeRun = useCallback(async () => {
+    try {
+      const res: any = await authRequest.post("/run-code", {
+        roomId: roomMongooseId,
+      });
+      terminalRef.current?.write(
+        res.data.output || res.data.error + "\n",
+      );
+    } catch (err: any) {
+      terminalRef.current?.write(err.message + "\n");
+    }
+  }, [roomMongooseId]);
+
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "s") {
+        e.preventDefault();
+      }
+      if ((e.metaKey || e.ctrlKey) && (e.key === "Enter" || e.key == "'")) {
+        e.preventDefault();
+        handleCodeRun();
+      }
+    },
+    [handleCodeRun],
+  );
+
+  useEffect(() => {
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
 
   useEffect(() => {
     if (!awareness) return;
@@ -167,57 +119,45 @@ const TextEditor = () => {
   }, [awareness]);
 
   const handleEditorMount: OnMount = (editor) => {
+    setEditorInstance(editor);
+
     const yText = ydoc?.getText("monaco");
     const model = editor.getModel();
-
     if (!yText || !model) return;
 
     new MonacoBinding(yText, model, new Set([editor]), awareness);
   };
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    if (!editorChatContainer?.current) return;
-
-    const rect = editorChatContainer?.current?.getBoundingClientRect();
-
-    const x = rect.width / 2 + event.delta.x;
-    const y = rect.height / 2 + event.delta.y;
-
-    setCorner(getNearestCorner(x, y, rect));
-  };
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 15,
-      },
-    }),
-  );
-
-  const fitTerminal = () => {
-    requestAnimationFrame(() => {
-      fitAddonRef.current?.fit();
-    });
-  };
+  useEffect(() => {
+    const model = editorInstance?.getModel();
+    if (!model) return;
+    monaco.editor.setModelLanguage(model, language);
+  }, [language, editorInstance]);
 
   return !ydoc ? (
-    <div className="w-full h-screen flex flex-col gap-2 justify-center">
-      <h2 className="text-center text-2xl ">Loading...</h2>
+    <div className="w-full h-screen flex flex-col gap-2 justify-center items-center bg-[#0d1117]">
+      <div className="animate-spin w-8 h-8 border-2 border-[#58a6ff] border-t-transparent rounded-full" />
+      <h2 className="text-gray-400 text-sm">Loading editor...</h2>
     </div>
   ) : (
-    <div className="w-full h-screen flex flex-col">
-      <ConnectionStatusBanner socket={socket} />
-      <div className="flex items-center h-fit px-2 py-1 gap-4">
-        <Link to={"/rooms"} className="btn btn-sm">
-          <FaLongArrowAltLeft /> All Rooms
+    <div className="w-full h-screen flex flex-col bg-[#0d1117] text-gray-200">
+      {/* Top Toolbar */}
+      <div className="flex items-center h-10 px-3 bg-[#161b22] border-b border-gray-700/50 gap-2 select-none">
+        <Link
+          to={"/rooms"}
+          className="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors text-xs"
+        >
+          <FaLongArrowAltLeft />
+          <span className="hidden sm:inline">All Rooms</span>
         </Link>
+
+        <div className="w-px h-5 bg-gray-700/50 mx-1" />
+
         <select
-          onChange={(e) => {
-            handleLangChange(e.target.value);
-          }}
+          onChange={(e) => handleLangChange(e.target.value)}
           disabled={roomRole == "viewer"}
           value={language}
-          className="select select-ghost w-50 capitalize"
+          className="bg-transparent text-xs text-gray-300 outline-none border border-gray-700/50 rounded px-1.5 py-0.5 capitalize cursor-pointer hover:border-gray-600"
         >
           {LangTypes.map((lang) => (
             <option value={lang} key={lang}>
@@ -225,68 +165,89 @@ const TextEditor = () => {
             </option>
           ))}
         </select>
-        <div className="ms-auto flex items-center gap-3">
-          <CollaboratorsList socket={socket} currentUserId={userId} />
-          <Link to={`/room/${roomId}/replay`} className="btn btn-sm">
-            Replay
+
+        <div className="flex-1" />
+
+        <div className="flex items-center gap-1">
+          <button
+            className={`p-1.5 rounded text-xs transition-colors ${
+              sidebarOpen
+                ? "text-[#58a6ff] bg-[#58a6ff]/10"
+                : "text-gray-400 hover:text-white hover:bg-[#21262d]"
+            }`}
+            onClick={() => setSidebarOpen((p) => !p)}
+            title="Toggle sidebar"
+          >
+            <FiSidebar size={15} />
+          </button>
+
+          <Link
+            to={`/room/${roomId}/replay`}
+            className="p-1.5 rounded text-xs text-gray-400 hover:text-white hover:bg-[#21262d] transition-colors"
+            title="Replay"
+          >
+            <FaHistory size={14} />
           </Link>
+
           {roomRole != "viewer" && (
-            <div className="flex gap-2">
+            <>
               <button
-                className="btn btn-sm bg-success/80"
+                className="p-1.5 rounded text-xs text-gray-400 hover:text-white hover:bg-[#21262d] transition-colors disabled:opacity-40"
                 onClick={handleCodeSave}
                 disabled={saving}
+                title="Save"
               >
-                {saving ? "Saving..." : "Save"}
+                <FaSave size={14} />
               </button>
               <button
-                className="btn btn-sm bg-accent/80"
+                className="flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium bg-[#238636] text-white hover:bg-[#2ea043] transition-colors"
                 onClick={handleCodeRun}
+                title="Run (⌘⏎)"
               >
-                Run
+                <FaPlay size={10} />
+                <span>Run</span>
               </button>
-            </div>
+            </>
           )}
         </div>
       </div>
-      <Resizable
-        defaultSize={{
-          height: "80%",
-          width: "100%",
-        }}
-        maxHeight={"80%"}
-        minHeight={150}
-        enable={{ bottom: true }}
-        onResize={() => {
-          fitTerminal();
-        }}
-      >
-        <div
-          className="editor-chat-container relative"
-          ref={editorChatContainer}
-        >
+
+      {/* Editor + Sidebar */}
+      <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 relative overflow-hidden">
           <Editor
             key={editorKey.current}
-            className="flex-1"
+            className="h-full"
             language={language}
             theme="vs-dark"
             onMount={handleEditorMount}
-            onValidate={handleCodeValidation}
             options={{ readOnly: roomRole == "viewer" }}
           />
-          <DndContext onDragEnd={handleDragEnd} sensors={sensors}>
-            <ChatCallPanelLayout
-              corner={corner}
-              socket={socket}
-              roomMongooseId={roomMongooseId}
-            />
-          </DndContext>
         </div>
-      </Resizable>
-      <div className="w-md h-1 mx-auto my-1 bg-base-100 rounded-4xl"></div>
-      <div className="p-1 h-[100%] overflow-auto" style={{ flex: 1 }}>
-        <div ref={terminalRef} className="h-full"></div>
+
+        {sidebarOpen && (
+          <CollabSidebar
+            socket={socket}
+            roomMongooseId={roomMongooseId}
+            currentUserId={userId}
+            editorInstance={editorInstance}
+            roomRole={roomRole}
+          />
+        )}
       </div>
+
+      {/* Status Bar */}
+      <StatusBar
+        editorInstance={editorInstance}
+        language={language}
+        socket={socket}
+        roomRole={roomRole}
+        currentUserId={userId}
+        roomId={roomMongooseId || roomId || ""}
+      />
+
+      {/* Terminal */}
+      <TerminalPanel ref={terminalRef} />
     </div>
   );
 };
