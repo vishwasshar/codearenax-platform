@@ -3,7 +3,18 @@ import Editor from "@monaco-editor/react";
 import { Link, useParams } from "react-router-dom";
 import { useCodeReplay } from "../hooks/useCodeReplay";
 import { FaLongArrowAltLeft, FaPlay, FaPause, FaUndo } from "react-icons/fa";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+
+const FILE_ICONS: Record<string, string> = {
+  ts: "🔵", tsx: "⚛️", js: "🟡", jsx: "⚛️",
+  css: "🎨", json: "📋", html: "🌐", md: "📝",
+  py: "🐍", cpp: "⚡", c: "⚡",
+};
+
+const getIcon = (path: string) => {
+  const ext = path.split(".").pop() || "";
+  return FILE_ICONS[ext] || "📄";
+};
 
 const CodeReplay = () => {
   const [editorKey, setEditorKey] = useState(0);
@@ -11,6 +22,10 @@ const CodeReplay = () => {
   const {
     texts,
     lang,
+    files,
+    editedFiles,
+    selectedFile,
+    setSelectedFile,
     isPlaying,
     isFinished,
     currentIndex,
@@ -45,6 +60,12 @@ const CodeReplay = () => {
 
   const progress = total > 0 ? Math.round((currentIndex / total) * 100) : 0;
 
+  useEffect(() => {
+    setEditorKey((k) => k + 1);
+  }, [selectedFile]);
+
+  const uniqueFilePaths = [...new Set([...files.map((f) => f.path), ...editedFiles])];
+
   return (
     <div className="w-full h-screen flex flex-col bg-base-300">
       <div className="flex items-center h-fit px-2 py-1 gap-4 bg-base-200 border-b border-base-content/10">
@@ -52,6 +73,22 @@ const CodeReplay = () => {
           <FaLongArrowAltLeft /> Back to Editor
         </Link>
         <span className="font-bold text-sm">Code Replay</span>
+
+        {/* File selector */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-base-content/70">File:</span>
+          <select
+            className="select select-ghost select-xs w-44"
+            value={selectedFile}
+            onChange={(e) => setSelectedFile(e.target.value)}
+          >
+            {uniqueFilePaths.map((fp) => (
+              <option key={fp} value={fp}>
+                {getIcon(fp)} {fp}
+              </option>
+            ))}
+          </select>
+        </div>
 
         <div className="ms-auto flex items-center gap-3">
           {!isPlaying ? (
@@ -98,7 +135,7 @@ const CodeReplay = () => {
         </div>
       ) : total === 0 ? (
         <div className="flex-1 flex items-center justify-center">
-          <h2 className="text-2xl">No edits recorded for this session</h2>
+          <h2 className="text-2xl">No edits recorded for {selectedFile}</h2>
         </div>
       ) : (
         <Editor

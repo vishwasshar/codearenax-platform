@@ -7,7 +7,7 @@ import { UpdateRoom } from './dtos/UpdateRoom.dto';
 import { AccessRole } from 'src/common/enums/access-role.enum';
 import { MemoryStoreService } from 'src/memory-store/memory-store.service';
 import { stringToYDoc } from 'src/utils/stringToYDoc';
-import { ydocToString } from 'src/utils/ydocToString';
+import { ydocToFiles } from 'src/utils/ydocToString';
 import { Socket } from 'socket.io';
 import * as Y from 'yjs';
 import { JwtService } from '@nestjs/jwt';
@@ -57,7 +57,8 @@ export class RoomsService {
         $project: {
           slug: 1,
           name: 1,
-          lang: 1,
+          lang: { $ifNull: [{ $first: '$files.lang' }, 'javascript'] },
+          files: { $ifNull: ['$files', []] },
           role: '$myrole.role',
           createdAt: 1,
           updatedAt: 1,
@@ -83,8 +84,13 @@ export class RoomsService {
   }
 
   async createNewRoom(createRoom: CreateRoom, userId: string) {
+    const files = createRoom.files?.length
+      ? createRoom.files
+      : [{ path: 'index.js', content: createRoom.content || '// Start writing your code from Here', lang: createRoom.lang || 'javascript' }];
+
     const newRoom = new this.roomModel({
       ...createRoom,
+      files,
       accessList: { user: userId, role: AccessRole.OWNER },
     });
 
@@ -97,11 +103,11 @@ export class RoomsService {
     const ydoc = await this.redisStore.getYDoc(`crdt-rooms:${id}`);
     if (!ydoc) return;
 
-    const updatedContent = ydocToString(ydoc);
+    const files = ydocToFiles(ydoc);
 
     return await this.roomModel.findByIdAndUpdate(
       id,
-      { content: updatedContent },
+      { files },
       { new: true },
     );
   }
@@ -257,7 +263,15 @@ export class RoomsService {
         roomDetails.activeUserInfos = [];
         roomDetails.isDirty = false;
 
-        ydoc = stringToYDoc(roomDetails.content);
+        const files = (roomDetails as any).files || [{ path: 'index.js', content: (roomDetails as any).content || '', lang: 'javascript' }];
+        ydoc = stringToYDoc(files.map((f: any) => ({ path: f.path, content: f.content })));
+        const filesArr = ydoc.getArray('files');
+        ydoc.transact(() => {
+          for (const f of files) {
+            filesArr.push([{ path: f.path, lang: f.lang || 'javascript' }]);
+          }
+        });
+
         this.inMemoryStore.crdtRooms.set(roomId, ydoc);
         await this.redisStore.setYDoc(`crdt-rooms:${roomId}`, ydoc);
         await this.redisStore.set(`active-rooms:${roomId}`, roomDetails);
@@ -271,7 +285,6 @@ export class RoomsService {
 
         ydoc =
           (await this.redisStore.getYDoc(`crdt-rooms:${roomId}`)) ||
-          stringToYDoc(roomDetails.content) ||
           new Y.Doc();
 
         this.inMemoryStore.crdtRooms.set(roomId, ydoc);
@@ -316,10 +329,12 @@ export class RoomsService {
       client.emit('room:current-users', roomDetails.activeUserInfos);
       client.to(roomId).emit('room:user-joined', userInfo);
 
+      const filesList = ydoc.getArray<{ path: string; lang: string }>('files').toArray();
+
       client.emit(
         'crdt:doc',
         Y.encodeStateAsUpdate(ydoc),
-        roomDetails.lang,
+        filesList,
         roomId,
         hasAccess.role,
       );

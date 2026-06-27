@@ -150,7 +150,11 @@ export class RoomsController {
 
   @Get(':roomId/replay')
   @UseGuards(JWTGuard)
-  async getReplayData(@Param('roomId') roomId: string, @Req() req: Request) {
+  async getReplayData(
+    @Param('roomId') roomId: string,
+    @Query('filePath') filePath?: string,
+    @Req() req?: Request,
+  ) {
     let room;
     if (mongoose.Types.ObjectId.isValid(roomId)) {
       room = await this.roomsService.getRoomById(roomId);
@@ -160,19 +164,22 @@ export class RoomsController {
 
     if (!room) throw new HttpException('Room Not Found', 404);
 
-    const user = req.user as JwtPayload;
+    const user = req?.user as JwtPayload;
     const hasAccess = (room.accessList as any[])?.some(
       (a: any) => a.user?._id?.toString() === user._id?.toString(),
     );
     if (!hasAccess) throw new UnauthorizedException('Not Accessible');
 
     const roomMongoId = room._id.toString();
-    const edits = await this.replayService.getEdits(roomMongoId);
+    const edits = await this.replayService.getEdits(roomMongoId, filePath);
     const sessions = await this.replayService.getSessions(roomMongoId);
+    const editedFiles = await this.replayService.getDistinctFiles(roomMongoId);
+
+    const roomFiles = (room as any).files || [{ path: 'index.js', content: (room as any).content || '', lang: 'javascript' }];
 
     return {
-      lang: room.lang || 'javascript',
-      content: room.content || '',
+      files: roomFiles,
+      editedFiles,
       edits,
       sessions,
     };

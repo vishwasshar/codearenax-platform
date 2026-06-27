@@ -15,6 +15,9 @@ export class EditHistory {
   @Prop({ required: false, type: String })
   text: string;
 
+  @Prop({ required: true, default: 'index.js' })
+  filePath: string;
+
   @Prop({ required: true, default: Date.now })
   timestamp: Date;
 }
@@ -22,4 +25,4 @@ export class EditHistory {
 export const EditHistorySchema = SchemaFactory.createForClass(EditHistory);
 export type EditHistoryDocument = EditHistory & Document;
 
-EditHistorySchema.index({ roomId: 1, timestamp: 1 });
+EditHistorySchema.index({ roomId: 1, filePath: 1, timestamp: 1 });

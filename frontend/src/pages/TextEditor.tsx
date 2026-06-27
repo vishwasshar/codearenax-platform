@@ -12,12 +12,12 @@ import { MonacoBinding } from "y-monaco";
 import "./textEditor.css";
 import { useRoomSocket } from "../hooks/useRoomSocket";
 import { FaLongArrowAltLeft, FaPlay, FaSave, FaHistory } from "react-icons/fa";
-import { FiSidebar } from "react-icons/fi";
+import { FiSidebar, FiFolder } from "react-icons/fi";
 import StatusBar from "../components/StatusBar";
-import TerminalPanel, {
-  type TerminalHandle,
-} from "../components/TerminalPanel";
+import TerminalPanel, { type TerminalHandle } from "../components/TerminalPanel";
 import CollabSidebar from "../components/CollabSidebar";
+import FileTree from "../components/FileTree";
+import TabBar from "../components/TabBar";
 
 const TextEditor = () => {
   const { token, name: userName, userId } = useSelector(
@@ -29,6 +29,12 @@ const TextEditor = () => {
   const {
     ydoc,
     awareness,
+    files,
+    activeFile,
+    createFile,
+    deleteFile,
+    renameFile,
+    switchFile,
     language,
     handleLangChange,
     roomMongooseId,
@@ -37,22 +43,17 @@ const TextEditor = () => {
     saving,
   } = useCRDT(socket, userName);
 
-  const editorKey = useRef(0);
   const [editorInstance, setEditorInstance] =
     useState<monaco.editor.IStandaloneCodeEditor | null>(null);
   const terminalRef = useRef<TerminalHandle | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-
-  useEffect(() => {
-    if (ydoc) {
-      editorKey.current += 1;
-    }
-  }, [ydoc]);
+  const [fileTreeOpen, setFileTreeOpen] = useState(true);
 
   const handleCodeRun = useCallback(async () => {
     try {
       const res: any = await authRequest.post("/run-code", {
         roomId: roomMongooseId,
+        filePath: activeFile,
       });
       terminalRef.current?.write(
         res.data.output || res.data.error + "\n",
@@ -60,7 +61,7 @@ const TextEditor = () => {
     } catch (err: any) {
       terminalRef.current?.write(err.message + "\n");
     }
-  }, [roomMongooseId]);
+  }, [roomMongooseId, activeFile]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -121,7 +122,7 @@ const TextEditor = () => {
   const handleEditorMount: OnMount = (editor) => {
     setEditorInstance(editor);
 
-    const yText = ydoc?.getText("monaco");
+    const yText = ydoc?.getText(activeFile);
     const model = editor.getModel();
     if (!yText || !model) return;
 
@@ -133,6 +134,10 @@ const TextEditor = () => {
     if (!model) return;
     monaco.editor.setModelLanguage(model, language);
   }, [language, editorInstance]);
+
+  useEffect(() => {
+    setEditorInstance(null);
+  }, [activeFile]);
 
   return !ydoc ? (
     <div className="w-full h-screen flex flex-col gap-2 justify-center items-center bg-[#0d1117]">
@@ -152,6 +157,18 @@ const TextEditor = () => {
         </Link>
 
         <div className="w-px h-5 bg-gray-700/50 mx-1" />
+
+        <button
+          className={`p-1.5 rounded text-xs transition-colors ${
+            fileTreeOpen
+              ? "text-[#58a6ff] bg-[#58a6ff]/10"
+              : "text-gray-400 hover:text-white hover:bg-[#21262d]"
+          }`}
+          onClick={() => setFileTreeOpen((p) => !p)}
+          title="Toggle file tree"
+        >
+          <FiFolder size={15} />
+        </button>
 
         <select
           onChange={(e) => handleLangChange(e.target.value)}
@@ -176,7 +193,7 @@ const TextEditor = () => {
                 : "text-gray-400 hover:text-white hover:bg-[#21262d]"
             }`}
             onClick={() => setSidebarOpen((p) => !p)}
-            title="Toggle sidebar"
+            title="Toggle collab sidebar"
           >
             <FiSidebar size={15} />
           </button>
@@ -212,19 +229,45 @@ const TextEditor = () => {
         </div>
       </div>
 
-      {/* Editor + Sidebar */}
+      {/* Main area: FileTree | Editor + Tabs | CollabSidebar */}
       <div className="flex-1 flex overflow-hidden">
-        <div className="flex-1 relative overflow-hidden">
-          <Editor
-            key={editorKey.current}
-            className="h-full"
-            language={language}
-            theme="vs-dark"
-            onMount={handleEditorMount}
-            options={{ readOnly: roomRole == "viewer" }}
+        {/* File Tree */}
+        {fileTreeOpen && (
+          <div className="w-52 h-full overflow-y-auto bg-[#0d1117] border-r border-gray-700/50 flex-shrink-0">
+            <FileTree
+              files={files}
+              activeFile={activeFile}
+              onSelect={switchFile}
+              onCreate={createFile}
+              onDelete={deleteFile}
+              onRename={renameFile}
+              readOnly={roomRole == "viewer"}
+            />
+          </div>
+        )}
+
+        {/* Editor area */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <TabBar
+            files={files}
+            activeFile={activeFile}
+            onSelect={switchFile}
+            onClose={deleteFile}
+            readOnly={roomRole == "viewer"}
           />
+          <div className="flex-1 relative overflow-hidden">
+            <Editor
+              key={`editor-${activeFile}`}
+              className="h-full"
+              language={language}
+              theme="vs-dark"
+              onMount={handleEditorMount}
+              options={{ readOnly: roomRole == "viewer" }}
+            />
+          </div>
         </div>
 
+        {/* Collab Sidebar */}
         {sidebarOpen && (
           <CollabSidebar
             socket={socket}

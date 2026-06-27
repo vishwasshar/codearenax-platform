@@ -5,11 +5,18 @@ interface EditEntry {
   text: string;
   timestamp: string;
   userId: string;
+  filePath: string;
+}
+
+interface FileEntry {
+  path: string;
+  content: string;
+  lang: string;
 }
 
 interface ReplayData {
-  lang: string;
-  content: string;
+  files: FileEntry[];
+  editedFiles: string[];
   edits: EditEntry[];
   sessions: { initialState: number[] | null; createdAt: string }[];
 }
@@ -17,6 +24,9 @@ interface ReplayData {
 export const useCodeReplay = (roomId: string) => {
   const [texts, setTexts] = useState<string[]>([]);
   const [lang, setLang] = useState("javascript");
+  const [files, setFiles] = useState<FileEntry[]>([]);
+  const [editedFiles, setEditedFiles] = useState<string[]>([]);
+  const [selectedFile, setSelectedFile] = useState<string>("index.js");
   const [isPlaying, setIsPlaying] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -30,36 +40,47 @@ export const useCodeReplay = (roomId: string) => {
   const speedRef = useRef(5);
   const onUpdateRef = useRef<((text: string) => void) | null>(null);
 
-  useEffect(() => {
+  const fetchReplay = useCallback(async (filePath: string) => {
     setLoading(true);
-    authRequest
-      .get(`rooms/${roomId}/replay`)
-      .then((res) => {
-        const data: ReplayData = res.data;
-        const allEdits = data.edits;
+    try {
+      const res = await authRequest.get(`rooms/${roomId}/replay`, {
+        params: { filePath },
+      });
+      const data: ReplayData = res.data;
 
-        const allTexts: string[] = [];
-        let lastText = data.content || "";
-        for (const edit of allEdits) {
-          if (edit.text != null && edit.text !== "") {
-            lastText = edit.text;
-          }
-          allTexts.push(lastText);
+      setFiles(data.files);
+      setEditedFiles(data.editedFiles);
+
+      const fileInfo = data.files.find((f) => f.path === filePath);
+      const allEdits = data.edits;
+
+      const allTexts: string[] = [];
+      let lastText = fileInfo?.content || "";
+      for (const edit of allEdits) {
+        if (edit.text != null && edit.text !== "") {
+          lastText = edit.text;
         }
+        allTexts.push(lastText);
+      }
 
-        textsRef.current = allTexts;
-        setTexts(allTexts);
-        setLang(data.lang);
-        idxRef.current = 0;
-        setCurrentIndex(0);
-        setIsFinished(false);
+      textsRef.current = allTexts;
+      setTexts(allTexts);
+      setLang(fileInfo?.lang || "javascript");
+      idxRef.current = 0;
+      setCurrentIndex(0);
+      setIsFinished(false);
 
-        onUpdateRef.current?.(data.content || "");
-
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+      onUpdateRef.current?.(fileInfo?.content || "");
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false);
+    }
   }, [roomId]);
+
+  useEffect(() => {
+    fetchReplay(selectedFile);
+  }, [selectedFile, fetchReplay]);
 
   const applyNext = useCallback(() => {
     try {
@@ -143,6 +164,10 @@ export const useCodeReplay = (roomId: string) => {
   return {
     texts,
     lang,
+    files,
+    editedFiles,
+    selectedFile,
+    setSelectedFile,
     isPlaying,
     isFinished,
     currentIndex,
@@ -151,7 +176,7 @@ export const useCodeReplay = (roomId: string) => {
     speed,
     play,
     pause,
-    reset,
+    reset: hookReset,
     setSpeed: setPlaySpeed,
     onUpdateRef,
   };

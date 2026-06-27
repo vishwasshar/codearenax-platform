@@ -14,7 +14,7 @@ import { ydocToString } from 'src/utils/ydocToString';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Room } from 'src/schemas/room.schema';
-import { stringToYDoc } from 'src/utils/stringToYDoc';
+import { LangTypes } from 'src/common/enums';
 
 @Controller('run-code')
 export class RunCodeController {
@@ -27,20 +27,28 @@ export class RunCodeController {
 
   @Post()
   async runCode(@Body(new ValidationPipe()) data: CodeSubmission) {
-    let ydoc = await this.redisStore.getYDoc(`crdt-rooms:${data.roomId}`);
+    const ydoc = await this.redisStore.getYDoc(`crdt-rooms:${data.roomId}`);
 
-    if (!ydoc) {
+    const filePath = data.filePath || 'index.js';
+  let code: string;
+  let lang: LangTypes;
+
+    if (ydoc) {
+      code = ydoc.getText(filePath).toString();
+      const filesArr = ydoc.getArray<{ path: string; lang: LangTypes }>('files');
+      const files = filesArr.toArray();
+      const file = files.find((f) => f.path === filePath);
+      lang = file?.lang || LangTypes.JS;
+    } else {
       const roomDoc = await this.roomModel.findById(data.roomId).lean();
       if (!roomDoc) throw new NotFoundException('Room not found');
-      ydoc = stringToYDoc(roomDoc.content);
+      const roomFiles = (roomDoc as any).files || [];
+      const file = roomFiles.find((f: any) => f.path === filePath);
+      code = file?.content || '';
+      lang = file?.lang || LangTypes.JS;
     }
 
-    const updatedContent = ydocToString(ydoc);
-
-    const room = await this.redisStore.get(`active-rooms:${data.roomId}`);
-    const lang = room?.lang || (await this.roomModel.findById(data.roomId).lean())?.lang || 'javascript';
-
-    const res = await this.runCodeService.runCode(updatedContent, lang);
+    const res = await this.runCodeService.runCode(code, lang);
 
     if (!res) throw new ServiceUnavailableException('Execution engine not working');
 

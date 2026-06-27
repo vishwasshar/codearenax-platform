@@ -4,16 +4,24 @@ import slugify from 'slugify';
 import { LangTypes } from 'src/common/enums';
 import { AccessRole } from 'src/common/enums/access-role.enum';
 
+class RoomFile {
+  @Prop({ required: true })
+  path: string;
+
+  @Prop({ required: true, default: '' })
+  content: string;
+
+  @Prop({ required: true, enum: LangTypes, default: LangTypes.JS })
+  lang: LangTypes;
+}
+
 @Schema()
 export class Room {
   @Prop({ required: true })
   name: string;
 
-  @Prop({ required: true, default: '// Start writing your code from Here' })
-  content: string;
-
-  @Prop({ required: true, enum: LangTypes, default: LangTypes.JS })
-  lang: LangTypes;
+  @Prop({ type: [RoomFile], default: [{ path: 'index.js', content: '// Start writing your code from Here', lang: LangTypes.JS }] })
+  files: RoomFile[];
 
   @Prop({})
   output: string;

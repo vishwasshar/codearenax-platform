@@ -37,12 +37,13 @@ export class ReplayService {
     });
   }
 
-  async recordEdit(roomId: string, userId: string, update: Uint8Array, text?: string) {
+  async recordEdit(roomId: string, userId: string, update: Uint8Array, text?: string, filePath?: string) {
     await this.editHistoryModel.create({
       roomId,
       userId,
       update: Buffer.from(update),
       text: text || undefined,
+      filePath: filePath || 'index.js',
       timestamp: new Date(),
     });
   }
@@ -56,10 +57,13 @@ export class ReplayService {
     return Buffer.from(raw || []);
   }
 
-  async getEdits(roomId: string) {
+  async getEdits(roomId: string, filePath?: string) {
+    const filter: any = { roomId };
+    if (filePath) filter.filePath = filePath;
+
     const docs = await this.editHistoryModel
-      .find({ roomId })
-      .select('update timestamp userId text')
+      .find(filter)
+      .select('update timestamp userId text filePath')
       .sort({ timestamp: 1 });
 
     const results: any[] = [];
@@ -70,11 +74,16 @@ export class ReplayService {
       results.push({
         update: [...buf],
         text: obj.text || undefined,
+        filePath: obj.filePath || 'index.js',
         timestamp: obj.timestamp,
         userId: obj.userId,
       });
     }
     return results;
+  }
+
+  async getDistinctFiles(roomId: string): Promise<string[]> {
+    return this.editHistoryModel.distinct('filePath', { roomId });
   }
 
   async deleteRoomHistory(roomId: string) {

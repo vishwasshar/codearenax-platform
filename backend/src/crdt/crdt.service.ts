@@ -36,8 +36,8 @@ export class CrdtService {
     );
   }
 
-  async updateRoom(client: Socket, data: { update: number[] }) {
-    const { update } = data;
+  async updateRoom(client: Socket, data: { update: number[]; filePath?: string }) {
+    const { update, filePath } = data;
 
     const roomId = client.data.roomId;
     if (!roomId) return;
@@ -72,12 +72,13 @@ export class CrdtService {
 
     client.to(roomId).emit('crdt:code-update', updateBuffer);
 
-    const currentText = ydoc.getText('monaco').toString();
-    this.replayService.recordEdit(roomId, userId, serverDelta, currentText).catch(() => {});
+    const targetFile = filePath || 'index.js';
+    const currentText = ydoc.getText(targetFile).toString();
+    this.replayService.recordEdit(roomId, userId, serverDelta, currentText, targetFile).catch(() => {});
   }
 
-  async updateRoomLang(client: Socket, data: { lang: LangTypes }) {
-    const { lang } = data;
+  async updateRoomLang(client: Socket, data: { lang: LangTypes; filePath?: string }) {
+    const { lang, filePath } = data;
     const roomId = client.data.roomId;
 
     const roomDetails = await this.redisStore.get(`active-rooms:${roomId}`);
@@ -96,8 +97,22 @@ export class CrdtService {
     )
       return;
 
-    roomDetails.lang = lang;
+    const ydoc = this.inMemoryStore.crdtRooms.get(roomId);
+    if (ydoc && filePath) {
+      ydoc.transact(() => {
+        const filesArr = ydoc.getArray<{ path: string; lang: string }>('files');
+        const files = filesArr.toArray();
+        const idx = files.findIndex((f) => f.path === filePath);
+        if (idx !== -1) {
+          filesArr.delete(idx, 1);
+          filesArr.insert(idx, [{ path: filePath, lang }]);
+        }
+      });
+    }
+
     await this.redisStore.set(`active-rooms:${roomId}`, roomDetails);
-    await this.roomService.updateRoom(roomId, { lang });
+    if (filePath) {
+      await this.roomService.updateRoom(roomId, { files: [{ path: filePath, lang }] as any });
+    }
   }
 }
