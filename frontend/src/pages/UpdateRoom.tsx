@@ -96,6 +96,7 @@ export const UpdateRoom = () => {
       const roomDetail = await authRequest.get(`/rooms/${roomId}`);
 
       setName(roomDetail.data.name || "");
+      setAccessList(roomDetail.data.accessList || []);
     } catch (err) {}
   };
 
@@ -225,13 +226,20 @@ export const UpdateRoom = () => {
             </div>
           )}
         </div>
-        <Link
-          to={"/rooms"}
-          className="btn btn-ghost underline mt-2"
-          type="submit"
-        >
-          <FaLongArrowAltLeft size={14} /> All Rooms
-        </Link>
+        <div className="flex gap-3 mt-2">
+          <Link
+            to={"/rooms"}
+            className="btn btn-ghost underline"
+          >
+            <FaLongArrowAltLeft size={14} /> All Rooms
+          </Link>
+          <Link
+            to={`/room/${roomId}`}
+            className="btn btn-neutral"
+          >
+            Go to Room
+          </Link>
+        </div>
       </div>
     </div>
   );

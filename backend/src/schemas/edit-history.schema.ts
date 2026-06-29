@@ -18,6 +18,12 @@ export class EditHistory {
   @Prop({ required: true, default: 'index.js' })
   filePath: string;
 
+  @Prop({ required: true, default: 'code', enum: ['code', 'whiteboard'] })
+  type: string;
+
+  @Prop({ required: false, type: Object })
+  shapeData: Record<string, any>;
+
   @Prop({ required: true, default: Date.now })
   timestamp: Date;
 }
@@ -26,3 +32,4 @@ export const EditHistorySchema = SchemaFactory.createForClass(EditHistory);
 export type EditHistoryDocument = EditHistory & Document;
 
 EditHistorySchema.index({ roomId: 1, filePath: 1, timestamp: 1 });
+EditHistorySchema.index({ roomId: 1, type: 1, timestamp: 1 });

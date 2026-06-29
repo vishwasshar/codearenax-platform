@@ -11,13 +11,14 @@ import { MonacoBinding } from "y-monaco";
 
 import "./textEditor.css";
 import { useRoomSocket } from "../hooks/useRoomSocket";
-import { FaLongArrowAltLeft, FaPlay, FaSave, FaHistory } from "react-icons/fa";
-import { FiSidebar, FiFolder, FiFilePlus } from "react-icons/fi";
+import { FaLongArrowAltLeft, FaPlay, FaSave, FaHistory, FaCog } from "react-icons/fa";
+import { FiSidebar, FiFolder, FiFilePlus, FiGrid } from "react-icons/fi";
 import StatusBar from "../components/StatusBar";
 import TerminalPanel, { type TerminalHandle } from "../components/TerminalPanel";
 import CollabSidebar from "../components/CollabSidebar";
 import FileTree from "../components/FileTree";
 import TabBar from "../components/TabBar";
+import { WhiteboardCanvas } from "../components/WhiteboardCanvas";
 
 const TextEditor = () => {
   const { token, name: userName, userId } = useSelector(
@@ -48,6 +49,7 @@ const TextEditor = () => {
   const terminalRef = useRef<TerminalHandle | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [fileTreeOpen, setFileTreeOpen] = useState(true);
+  const [whiteboardOpen, setWhiteboardOpen] = useState(false);
 
   const handleCodeRun = useCallback(async () => {
     try {
@@ -195,6 +197,18 @@ const TextEditor = () => {
         <div className="flex items-center gap-1">
           <button
             className={`p-1.5 rounded text-xs transition-colors ${
+              whiteboardOpen
+                ? "text-[#58a6ff] bg-[#58a6ff]/10"
+                : "text-gray-400 hover:text-white hover:bg-[#21262d]"
+            }`}
+            onClick={() => setWhiteboardOpen((p) => !p)}
+            title="Toggle whiteboard"
+          >
+            <FiGrid size={15} />
+          </button>
+
+          <button
+            className={`p-1.5 rounded text-xs transition-colors ${
               sidebarOpen
                 ? "text-[#58a6ff] bg-[#58a6ff]/10"
                 : "text-gray-400 hover:text-white hover:bg-[#21262d]"
@@ -212,6 +226,16 @@ const TextEditor = () => {
           >
             <FaHistory size={14} />
           </Link>
+
+          {roomRole === "owner" && (
+            <Link
+              to={`/update-room/${roomMongooseId || roomId}`}
+              className="p-1.5 rounded text-xs text-gray-400 hover:text-white hover:bg-[#21262d] transition-colors"
+              title="Edit room"
+            >
+              <FaCog size={14} />
+            </Link>
+          )}
 
           {roomRole != "viewer" && (
             <>
@@ -255,46 +279,58 @@ const TextEditor = () => {
 
         {/* Editor area */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          <TabBar
-            files={files}
-            activeFile={activeFile}
-            onSelect={switchFile}
-            onClose={deleteFile}
-            readOnly={roomRole == "viewer"}
-          />
-          <div className="flex-1 relative overflow-hidden">
-            {files.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center gap-4 text-gray-500">
-                <div className="text-5xl">📄</div>
-                <p className="text-sm">No files open</p>
-                {roomRole !== "viewer" && (
-                  <button
-                    className="flex items-center gap-2 px-4 py-2 rounded text-sm font-medium bg-[#238636] text-white hover:bg-[#2ea043] transition-colors"
-                    onClick={() => {
-                      const name = prompt("File name:", "index.ts");
-                      if (name) createFile(name);
-                    }}
-                  >
-                    <FiFilePlus size={14} />
-                    New file
-                  </button>
+          {whiteboardOpen ? (
+            <div className="flex-1 relative overflow-hidden">
+              <WhiteboardCanvas
+                ydoc={ydoc}
+                socket={socket}
+                readOnly={roomRole == "viewer"}
+              />
+            </div>
+          ) : (
+            <>
+              <TabBar
+                files={files}
+                activeFile={activeFile}
+                onSelect={switchFile}
+                onClose={deleteFile}
+                readOnly={roomRole == "viewer"}
+              />
+              <div className="flex-1 relative overflow-hidden">
+                {files.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center gap-4 text-gray-500">
+                    <div className="text-5xl">📄</div>
+                    <p className="text-sm">No files open</p>
+                    {roomRole !== "viewer" && (
+                      <button
+                        className="flex items-center gap-2 px-4 py-2 rounded text-sm font-medium bg-[#238636] text-white hover:bg-[#2ea043] transition-colors"
+                        onClick={() => {
+                          const name = prompt("File name:", "index.ts");
+                          if (name) createFile(name);
+                        }}
+                      >
+                        <FiFilePlus size={14} />
+                        New file
+                      </button>
+                    )}
+                  </div>
+                ) : activeFile ? (
+                  <Editor
+                    key={`editor-${activeFile}`}
+                    className="h-full"
+                    language={language}
+                    theme="vs-dark"
+                    onMount={handleEditorMount}
+                    options={{ readOnly: roomRole == "viewer" }}
+                  />
+                ) : (
+                  <div className="h-full flex items-center justify-center text-gray-500 text-sm">
+                    Select a file to start editing
+                  </div>
                 )}
               </div>
-            ) : activeFile ? (
-              <Editor
-                key={`editor-${activeFile}`}
-                className="h-full"
-                language={language}
-                theme="vs-dark"
-                onMount={handleEditorMount}
-                options={{ readOnly: roomRole == "viewer" }}
-              />
-            ) : (
-              <div className="h-full flex items-center justify-center text-gray-500 text-sm">
-                Select a file to start editing
-              </div>
-            )}
-          </div>
+            </>
+          )}
         </div>
 
         {/* Collab Sidebar */}

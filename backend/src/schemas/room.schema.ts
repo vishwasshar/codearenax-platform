@@ -39,6 +39,12 @@ export class Room {
     user: mongoose.Types.ObjectId;
     role: string;
   }[];
+
+  @Prop({ type: Buffer, default: null })
+  whiteboardData: Buffer;
+
+  @Prop({ type: Object, default: null })
+  whiteboardMeta: Record<string, any>;
 }
 
 export const RoomSchema = SchemaFactory.createForClass(Room);

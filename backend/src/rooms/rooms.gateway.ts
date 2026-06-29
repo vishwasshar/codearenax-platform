@@ -74,6 +74,11 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     await this.crdtService.updateRoom(client, data);
   }
 
+  @SubscribeMessage('crdt:wb-edit')
+  async updateWhiteboard(client: Socket, data: { update: number[] }) {
+    await this.crdtService.updateWhiteboard(client, data);
+  }
+
   @SubscribeMessage('crdt:lang-change')
   async updateRoomLang(client: Socket, data: { lang: LangTypes; filePath?: string }) {
     const roomId = client.data.roomId;

@@ -158,7 +158,9 @@ export const useCRDT = (socket: Socket, userName: string) => {
   }, [ydoc]);
 
   useEffect(() => {
-    const handleLocalUpdate = (update: Uint8Array) => {
+    const handleLocalUpdate = (update: Uint8Array, origin: any) => {
+      if (origin === "whiteboard:tldraw") return;
+
       socket.emit("crdt:code-edit", {
         update: Array.from(update),
         filePath: activeFileRef.current,
@@ -214,6 +216,8 @@ export const useCRDT = (socket: Socket, userName: string) => {
     const filesArr = doc.getArray<{ path: string; lang: string }>("files");
     const exists = filesArr.toArray().some((f) => f.path === path);
     if (exists) return false;
+
+    activeFileRef.current = path;
 
     doc.transact(() => {
       filesArr.push([{ path, lang }]);

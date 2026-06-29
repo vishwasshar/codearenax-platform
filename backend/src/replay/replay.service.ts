@@ -37,13 +37,23 @@ export class ReplayService {
     });
   }
 
-  async recordEdit(roomId: string, userId: string, update: Uint8Array, text?: string, filePath?: string) {
+  async recordEdit(
+    roomId: string,
+    userId: string,
+    update: Uint8Array,
+    text?: string,
+    filePath?: string,
+    type: string = 'code',
+    shapeData?: Record<string, any>,
+  ) {
     await this.editHistoryModel.create({
       roomId,
       userId,
       update: Buffer.from(update),
       text: text || undefined,
       filePath: filePath || 'index.js',
+      type,
+      shapeData: shapeData || undefined,
       timestamp: new Date(),
     });
   }

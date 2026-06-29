@@ -77,6 +77,40 @@ export class CrdtService {
     this.replayService.recordEdit(roomId, userId, serverDelta, currentText, targetFile).catch(() => {});
   }
 
+  async updateWhiteboard(client: Socket, data: { update: number[] }) {
+    const { update } = data;
+    const roomId = client.data.roomId;
+    if (!roomId) return;
+
+    const roomDetails = await this.redisStore.get(`active-rooms:${roomId}`);
+    const ydoc = this.inMemoryStore.crdtRooms.get(roomId);
+    const userId = client.data.userId;
+
+    if (!roomDetails || !ydoc) return;
+    if (!userId) return;
+
+    const hasEditAccess = roomDetails?.accessList?.some(
+      (u: any) =>
+        u?.user?._id?.toString() === userId?.toString() &&
+        [AccessRole.OWNER, AccessRole.EDITOR].includes(u.role),
+    );
+    if (!hasEditAccess) return;
+
+    const updateBuffer = Uint8Array.from(update);
+
+    const prevStateVector = Y.encodeStateVector(ydoc);
+    Y.applyUpdate(ydoc, updateBuffer);
+    const serverDelta = Y.diffUpdate(Y.encodeStateAsUpdate(ydoc), prevStateVector);
+
+    this.schedulePersist(roomId);
+
+    client.to(roomId).emit('crdt:wb-update', updateBuffer);
+
+    this.replayService
+      .recordEdit(roomId, userId, serverDelta, undefined, '__whiteboard__', 'whiteboard')
+      .catch(() => {});
+  }
+
   async updateRoomLang(client: Socket, data: { lang: LangTypes; filePath?: string }) {
     const { lang, filePath } = data;
     const roomId = client.data.roomId;

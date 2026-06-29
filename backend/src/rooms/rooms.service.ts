@@ -8,6 +8,7 @@ import { AccessRole } from 'src/common/enums/access-role.enum';
 import { MemoryStoreService } from 'src/memory-store/memory-store.service';
 import { stringToYDoc } from 'src/utils/stringToYDoc';
 import { ydocToFiles } from 'src/utils/ydocToString';
+import { ydocToWhiteboardData, populateYdocWhiteboard } from 'src/utils/whiteboardUtils';
 import { Socket } from 'socket.io';
 import * as Y from 'yjs';
 import { JwtService } from '@nestjs/jwt';
@@ -103,12 +104,23 @@ export class RoomsService {
     if (!ydoc) return;
 
     const files = ydocToFiles(ydoc);
+    const wbData = ydocToWhiteboardData(ydoc);
+    const update: any = { files };
+    if (wbData && Object.keys(wbData.records).length > 0) {
+      const wbDoc = new Y.Doc();
+      const wbMap = wbDoc.getMap<any>('wb');
+      for (const [key, value] of Object.entries(wbData.records)) {
+        wbMap.set(key, value);
+      }
+      if (wbData.meta) {
+        wbMap.set('__meta', JSON.stringify(wbData.meta));
+      }
+      update.whiteboardData = Buffer.from(Y.encodeStateAsUpdate(wbDoc));
+      update.whiteboardMeta = wbData.meta || null;
+      wbDoc.destroy();
+    }
 
-    return await this.roomModel.findByIdAndUpdate(
-      id,
-      { files },
-      { new: true },
-    );
+    return await this.roomModel.findByIdAndUpdate(id, update, { new: true });
   }
 
   async updateRoom(id: string, updateRoom: UpdateRoom) {
@@ -271,6 +283,12 @@ export class RoomsService {
           }
         });
 
+        populateYdocWhiteboard(
+          ydoc,
+          (roomDetails as any).whiteboardData || null,
+          (roomDetails as any).whiteboardMeta || null,
+        );
+
         this.inMemoryStore.crdtRooms.set(roomId, ydoc);
         await this.redisStore.setYDoc(`crdt-rooms:${roomId}`, ydoc);
         await this.redisStore.set(`active-rooms:${roomId}`, roomDetails);
@@ -283,6 +301,7 @@ export class RoomsService {
         }
 
         ydoc =
+          this.inMemoryStore.crdtRooms.get(roomId) ||
           (await this.redisStore.getYDoc(`crdt-rooms:${roomId}`)) ||
           new Y.Doc();
 
