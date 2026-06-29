@@ -20,7 +20,7 @@ export class Room {
   @Prop({ required: true })
   name: string;
 
-  @Prop({ type: [RoomFile], default: [{ path: 'index.js', content: '// Start writing your code from Here', lang: LangTypes.JS }] })
+  @Prop({ type: [RoomFile], default: [] })
   files: RoomFile[];
 
   @Prop({})

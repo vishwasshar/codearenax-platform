@@ -19,15 +19,6 @@ export class CreateRoom {
   name: string;
 
   @IsOptional()
-  content?: string;
-
-  @IsOptional()
-  @IsEnum(LangTypes, {
-    message: 'Currently available languages are: ' + Object.values(LangTypes).join(', '),
-  })
-  lang?: LangTypes;
-
-  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => FileDto)

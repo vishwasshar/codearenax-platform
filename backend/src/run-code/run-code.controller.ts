@@ -10,11 +10,11 @@ import { CodeSubmission } from './dtos/RunCode.dto';
 import { RunCodeService } from './run-code.service';
 import { RoomsGateway } from 'src/rooms/rooms.gateway';
 import { RedisStoreService } from 'src/redis-store/redis-store.service';
-import { ydocToString } from 'src/utils/ydocToString';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Room } from 'src/schemas/room.schema';
 import { LangTypes } from 'src/common/enums';
+import { ydocToFiles } from 'src/utils/ydocToString';
 
 @Controller('run-code')
 export class RunCodeController {
@@ -29,26 +29,33 @@ export class RunCodeController {
   async runCode(@Body(new ValidationPipe()) data: CodeSubmission) {
     const ydoc = await this.redisStore.getYDoc(`crdt-rooms:${data.roomId}`);
 
-    const filePath = data.filePath || 'index.js';
-  let code: string;
-  let lang: LangTypes;
+    let files: { path: string; content: string }[];
 
     if (ydoc) {
-      code = ydoc.getText(filePath).toString();
-      const filesArr = ydoc.getArray<{ path: string; lang: LangTypes }>('files');
-      const files = filesArr.toArray();
-      const file = files.find((f) => f.path === filePath);
-      lang = file?.lang || LangTypes.JS;
+      files = ydocToFiles(ydoc);
     } else {
       const roomDoc = await this.roomModel.findById(data.roomId).lean();
       if (!roomDoc) throw new NotFoundException('Room not found');
-      const roomFiles = (roomDoc as any).files || [];
-      const file = roomFiles.find((f: any) => f.path === filePath);
-      code = file?.content || '';
-      lang = file?.lang || LangTypes.JS;
+      files = ((roomDoc as any).files || []).map((f: any) => ({
+        path: f.path,
+        content: f.content || '',
+      }));
     }
 
-    const res = await this.runCodeService.runCode(code, lang);
+    const hasPackageJson = files.some((f) => f.path === 'package.json');
+
+    if (hasPackageJson) {
+      const res = await this.runCodeService.runProject(files);
+      this.roomsGateway.handleCodeOuput(data.roomId, res.output);
+      return res;
+    }
+
+    const filePath = data.filePath || 'index.js';
+    const file = files.find((f) => f.path === filePath);
+    if (!file) throw new NotFoundException(`File '${filePath}' not found`);
+
+    const lang = (file as any).lang || LangTypes.JS;
+    const res = await this.runCodeService.runCode(file.content, lang);
 
     if (!res) throw new ServiceUnavailableException('Execution engine not working');
 

@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { LangTypes } from "../commons/vars/lang-types";
 import { authRequest } from "../utils/axios.interceptor";
 import { Link, useParams } from "react-router-dom";
 import { FaLongArrowAltLeft } from "react-icons/fa";
@@ -20,10 +19,7 @@ type AccessListItem = {
 };
 
 export const UpdateRoom = () => {
-  const [formData, setFormData] = useState({
-    name: "",
-    lang: "",
-  });
+  const [name, setName] = useState("");
 
   const [newAccess, setNewAccess] = useState({
     _id: "",
@@ -39,13 +35,6 @@ export const UpdateRoom = () => {
 
   const { roomId } = useParams();
 
-  const handleInput = (e: any) => {
-    setFormData((currData) => ({
-      ...currData,
-      [e.target.name]: e.target.value,
-    }));
-  };
-
   const handleAccessInput = (e: any) => {
     setNewAccess((currData) => ({
       ...currData,
@@ -56,7 +45,7 @@ export const UpdateRoom = () => {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     try {
-      await authRequest.put(`/rooms/${roomId}`, formData);
+      await authRequest.put(`/rooms/${roomId}`, { name });
 
       toast.success("Success:Room Updated");
     } catch (err) {
@@ -106,10 +95,7 @@ export const UpdateRoom = () => {
     try {
       const roomDetail = await authRequest.get(`/rooms/${roomId}`);
 
-      const { accessList, ...formData } = roomDetail.data;
-
-      setFormData(formData);
-      setAccessList(accessList);
+      setName(roomDetail.data.name || "");
     } catch (err) {}
   };
 
@@ -138,7 +124,7 @@ export const UpdateRoom = () => {
         <div className="grid md:grid-cols-2 gap-4">
           <div className="card bg-base-100 w-xs shadow-2xl">
             <form className="card-body" onSubmit={handleSubmit}>
-              <h3 className="text-xl capitalize">{formData.name || "."}</h3>
+              <h3 className="text-xl capitalize">{name || "."}</h3>
               <fieldset className="fieldset">
                 <label className="label">Name</label>
                 <input
@@ -146,28 +132,9 @@ export const UpdateRoom = () => {
                   className="input"
                   placeholder="Room Name"
                   name="name"
-                  value={formData.name}
-                  onChange={handleInput}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                 />
-                <label className="label">Language</label>
-                <select
-                  value={formData.lang}
-                  className="select capitalize"
-                  name="lang"
-                  onChange={(e: any) => {
-                    setFormData((currData) => ({
-                      ...currData,
-                      lang: e.target.value,
-                    }));
-                  }}
-                >
-                  <option disabled={true}>Pick a Language</option>
-                  {LangTypes.map((lang) => (
-                    <option value={lang} key={lang}>
-                      {lang}
-                    </option>
-                  ))}
-                </select>
                 <button className="btn btn-neutral mt-4" type="submit">
                   Update
                 </button>

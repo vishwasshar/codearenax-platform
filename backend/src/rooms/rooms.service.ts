@@ -84,13 +84,9 @@ export class RoomsService {
   }
 
   async createNewRoom(createRoom: CreateRoom, userId: string) {
-    const files = createRoom.files?.length
-      ? createRoom.files
-      : [{ path: 'index.js', content: createRoom.content || '// Start writing your code from Here', lang: createRoom.lang || 'javascript' }];
-
     const newRoom = new this.roomModel({
       ...createRoom,
-      files,
+      files: createRoom.files,
       accessList: { user: userId, role: AccessRole.OWNER },
     });
 
@@ -100,7 +96,10 @@ export class RoomsService {
   }
 
   async saveCodeSnapshot(id: string) {
-    const ydoc = await this.redisStore.getYDoc(`crdt-rooms:${id}`);
+    let ydoc = this.inMemoryStore.crdtRooms.get(id) ?? null;
+    if (!ydoc) {
+      ydoc = await this.redisStore.getYDoc(`crdt-rooms:${id}`);
+    }
     if (!ydoc) return;
 
     const files = ydocToFiles(ydoc);
@@ -263,7 +262,7 @@ export class RoomsService {
         roomDetails.activeUserInfos = [];
         roomDetails.isDirty = false;
 
-        const files = (roomDetails as any).files || [{ path: 'index.js', content: (roomDetails as any).content || '', lang: 'javascript' }];
+        const files = (roomDetails as any).files || [];
         ydoc = stringToYDoc(files.map((f: any) => ({ path: f.path, content: f.content })));
         const filesArr = ydoc.getArray('files');
         ydoc.transact(() => {

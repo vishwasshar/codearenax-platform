@@ -15,13 +15,7 @@ class FileDto {
 
 export class UpdateRoom {
   @IsOptional()
-  content?: string;
-
-  @IsOptional()
-  @IsEnum(LangTypes, {
-    message: 'Currently available languages are: ' + Object.values(LangTypes).join(', '),
-  })
-  lang?: LangTypes;
+  name?: string;
 
   @IsOptional()
   @IsArray()

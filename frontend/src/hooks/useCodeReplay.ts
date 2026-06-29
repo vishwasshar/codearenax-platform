@@ -176,7 +176,7 @@ export const useCodeReplay = (roomId: string) => {
     speed,
     play,
     pause,
-    reset: hookReset,
+    reset,
     setSpeed: setPlaySpeed,
     onUpdateRef,
   };

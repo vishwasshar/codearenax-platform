@@ -12,7 +12,7 @@ import { MonacoBinding } from "y-monaco";
 import "./textEditor.css";
 import { useRoomSocket } from "../hooks/useRoomSocket";
 import { FaLongArrowAltLeft, FaPlay, FaSave, FaHistory } from "react-icons/fa";
-import { FiSidebar, FiFolder } from "react-icons/fi";
+import { FiSidebar, FiFolder, FiFilePlus } from "react-icons/fi";
 import StatusBar from "../components/StatusBar";
 import TerminalPanel, { type TerminalHandle } from "../components/TerminalPanel";
 import CollabSidebar from "../components/CollabSidebar";
@@ -51,15 +51,12 @@ const TextEditor = () => {
 
   const handleCodeRun = useCallback(async () => {
     try {
-      const res: any = await authRequest.post("/run-code", {
+      await authRequest.post("/run-code", {
         roomId: roomMongooseId,
         filePath: activeFile,
       });
-      terminalRef.current?.write(
-        res.data.output || res.data.error + "\n",
-      );
     } catch (err: any) {
-      terminalRef.current?.write(err.message + "\n");
+      terminalRef.current?.write("Run failed: " + err.message + "\n");
     }
   }, [roomMongooseId, activeFile]);
 
@@ -80,6 +77,15 @@ const TextEditor = () => {
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
+
+  useEffect(() => {
+    if (!socket) return;
+    const handleOutput = (output: string) => {
+      terminalRef.current?.write(output + "\n");
+    };
+    socket.on("crdt:output", handleOutput);
+    return () => { socket.off("crdt:output", handleOutput); };
+  }, [socket]);
 
   useEffect(() => {
     if (!awareness) return;
@@ -122,7 +128,8 @@ const TextEditor = () => {
   const handleEditorMount: OnMount = (editor) => {
     setEditorInstance(editor);
 
-    const yText = ydoc?.getText(activeFile);
+    if (!activeFile || !ydoc) return;
+    const yText = ydoc.getText(activeFile);
     const model = editor.getModel();
     if (!yText || !model) return;
 
@@ -256,14 +263,37 @@ const TextEditor = () => {
             readOnly={roomRole == "viewer"}
           />
           <div className="flex-1 relative overflow-hidden">
-            <Editor
-              key={`editor-${activeFile}`}
-              className="h-full"
-              language={language}
-              theme="vs-dark"
-              onMount={handleEditorMount}
-              options={{ readOnly: roomRole == "viewer" }}
-            />
+            {files.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center gap-4 text-gray-500">
+                <div className="text-5xl">📄</div>
+                <p className="text-sm">No files open</p>
+                {roomRole !== "viewer" && (
+                  <button
+                    className="flex items-center gap-2 px-4 py-2 rounded text-sm font-medium bg-[#238636] text-white hover:bg-[#2ea043] transition-colors"
+                    onClick={() => {
+                      const name = prompt("File name:", "index.ts");
+                      if (name) createFile(name);
+                    }}
+                  >
+                    <FiFilePlus size={14} />
+                    New file
+                  </button>
+                )}
+              </div>
+            ) : activeFile ? (
+              <Editor
+                key={`editor-${activeFile}`}
+                className="h-full"
+                language={language}
+                theme="vs-dark"
+                onMount={handleEditorMount}
+                options={{ readOnly: roomRole == "viewer" }}
+              />
+            ) : (
+              <div className="h-full flex items-center justify-center text-gray-500 text-sm">
+                Select a file to start editing
+              </div>
+            )}
           </div>
         </div>
 

@@ -175,7 +175,7 @@ export class RoomsController {
     const sessions = await this.replayService.getSessions(roomMongoId);
     const editedFiles = await this.replayService.getDistinctFiles(roomMongoId);
 
-    const roomFiles = (room as any).files || [{ path: 'index.js', content: (room as any).content || '', lang: 'javascript' }];
+    const roomFiles = (room as any).files || [];
 
     return {
       files: roomFiles,

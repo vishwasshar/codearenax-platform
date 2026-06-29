@@ -34,7 +34,9 @@ export const useCRDT = (socket: Socket, userName: string) => {
   const [ydoc, setYdoc] = useState<Y.Doc | null>(null);
   const [awareness, setAwareness] = useState<Awareness | null>(null);
   const [files, setFiles] = useState<FileEntry[]>([]);
-  const [activeFile, setActiveFile] = useState<string>("index.js");
+  const [activeFile, setActiveFile] = useState<string>("");
+  const activeFileRef = useRef(activeFile);
+  activeFileRef.current = activeFile;
 
   const [language, setLanguage] = useState<string>("javascript");
   const [roomMongooseId, setRoomMongooseId] = useState<string | undefined>();
@@ -135,8 +137,20 @@ export const useCRDT = (socket: Socket, userName: string) => {
     if (!ydoc) return;
     const filesArr = ydoc.getArray<{ path: string; lang: string }>("files");
 
+    const current = filesArr.toArray();
+    setFiles(current);
+    if (!activeFile && current.length > 0) {
+      setActiveFile(current[0].path);
+      setLanguage(current[0].lang || "javascript");
+    }
+
     const observer = () => {
-      setFiles(filesArr.toArray());
+      const updated = filesArr.toArray();
+      setFiles(updated);
+      if (!activeFileRef.current && updated.length > 0) {
+        setActiveFile(updated[0].path);
+        setLanguage(updated[0].lang || "javascript");
+      }
     };
 
     filesArr.observe(observer);
@@ -147,7 +161,7 @@ export const useCRDT = (socket: Socket, userName: string) => {
     const handleLocalUpdate = (update: Uint8Array) => {
       socket.emit("crdt:code-edit", {
         update: Array.from(update),
-        filePath: activeFile,
+        filePath: activeFileRef.current,
       });
 
       debouncedSnapshotSave();
@@ -158,7 +172,7 @@ export const useCRDT = (socket: Socket, userName: string) => {
     return () => {
       ydoc?.off("update", handleLocalUpdate);
     };
-  }, [ydoc, activeFile]);
+  }, [ydoc]);
 
   useEffect(() => {
     if (!awareness || !socket) return;

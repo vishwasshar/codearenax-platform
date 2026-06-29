@@ -46,7 +46,10 @@ const TabBar = ({
           onClick={() => onSelect(file.path)}
         >
           <span className="text-[10px]">{getIcon(file.path)}</span>
-          <span>{file.path}</span>
+          <span>{file.path.split("/").pop()}</span>
+          {file.path.includes("/") && (
+            <span className="text-[9px] text-gray-600 ml-0.5 truncate max-w-[60px]">{file.path.split("/").slice(0, -1).join("/")}</span>
+          )}
           {!readOnly && files.length > 1 && (
             <span
               className="ml-1 p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-[#30363d] text-gray-500 hover:text-gray-200 transition-all"
