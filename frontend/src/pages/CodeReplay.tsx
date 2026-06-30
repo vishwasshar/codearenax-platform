@@ -176,7 +176,8 @@ const CodeReplay = () => {
     setEditorKey((k) => k + 1);
   }, [selectedFile]);
 
-  const replayFilePaths = [...new Set(editedFiles)];
+  const currentFilePaths = new Set(files.map((f) => f.path));
+  const replayFilePaths = [...new Set(editedFiles)].filter((p) => currentFilePaths.has(p));
 
   return (
     <div className="w-full h-screen flex flex-col bg-[#0d1117] text-gray-200">

@@ -12,13 +12,15 @@ import { MonacoBinding } from "y-monaco";
 import "./textEditor.css";
 import { useRoomSocket } from "../hooks/useRoomSocket";
 import { FaLongArrowAltLeft, FaPlay, FaSave, FaHistory, FaCog } from "react-icons/fa";
-import { FiSidebar, FiFolder, FiFilePlus, FiGrid } from "react-icons/fi";
+import { FiSidebar, FiFolder, FiFilePlus, FiGrid, FiShare2, FiCode } from "react-icons/fi";
 import StatusBar from "../components/StatusBar";
 import TerminalPanel, { type TerminalHandle } from "../components/TerminalPanel";
 import CollabSidebar from "../components/CollabSidebar";
 import FileTree from "../components/FileTree";
 import TabBar from "../components/TabBar";
 import { WhiteboardCanvas } from "../components/WhiteboardCanvas";
+import { useCodeGraph } from "../hooks/useCodeGraph";
+import GraphPanel from "../components/GraphPanel";
 
 const TextEditor = () => {
   const { token, name: userName, userId } = useSelector(
@@ -50,6 +52,8 @@ const TextEditor = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [fileTreeOpen, setFileTreeOpen] = useState(true);
   const [whiteboardOpen, setWhiteboardOpen] = useState(false);
+  const [graphOpen, setGraphOpen] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(true);
 
   const handleCodeRun = useCallback(async () => {
     try {
@@ -127,6 +131,22 @@ const TextEditor = () => {
     };
   }, [awareness]);
 
+  const { nodes: graphNodes, edges: graphEdges, loading: graphLoading, error: graphError } =
+    useCodeGraph(ydoc, activeFile);
+
+  const handleGraphNodeClick = useCallback(
+    (node: any) => {
+      if (!editorInstance) return;
+      const line = node.data.lineNumber;
+      if (line > 0) {
+        editorInstance.revealPositionInCenter({ lineNumber: line, column: 1 });
+        editorInstance.setPosition({ lineNumber: line, column: 1 });
+        editorInstance.focus();
+      }
+    },
+    [editorInstance],
+  );
+
   const handleEditorMount: OnMount = (editor) => {
     setEditorInstance(editor);
 
@@ -195,6 +215,30 @@ const TextEditor = () => {
         <div className="flex-1" />
 
         <div className="flex items-center gap-1">
+          <button
+            className={`p-1.5 rounded text-xs transition-colors ${
+              editorOpen
+                ? "text-[#58a6ff] bg-[#58a6ff]/10"
+                : "text-gray-400 hover:text-white hover:bg-[#21262d]"
+            }`}
+            onClick={() => setEditorOpen((p) => !p)}
+            title="Toggle editor"
+          >
+            <FiCode size={15} />
+          </button>
+
+          <button
+            className={`p-1.5 rounded text-xs transition-colors ${
+              graphOpen
+                ? "text-[#58a6ff] bg-[#58a6ff]/10"
+                : "text-gray-400 hover:text-white hover:bg-[#21262d]"
+            }`}
+            onClick={() => setGraphOpen((p) => !p)}
+            title="Toggle call graph"
+          >
+            <FiShare2 size={15} />
+          </button>
+
           <button
             className={`p-1.5 rounded text-xs transition-colors ${
               whiteboardOpen
@@ -277,18 +321,21 @@ const TextEditor = () => {
           </div>
         )}
 
-        {/* Editor area */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Editor + Graph panel wrapper */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Editor / Whiteboard area */}
           {whiteboardOpen ? (
-            <div className="flex-1 relative overflow-hidden">
-              <WhiteboardCanvas
-                ydoc={ydoc}
-                socket={socket}
-                readOnly={roomRole == "viewer"}
-              />
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <div className="flex-1 relative overflow-hidden">
+                <WhiteboardCanvas
+                  ydoc={ydoc}
+                  socket={socket}
+                  readOnly={roomRole == "viewer"}
+                />
+              </div>
             </div>
-          ) : (
-            <>
+          ) : editorOpen ? (
+            <div className="flex-1 flex flex-col overflow-hidden">
               <TabBar
                 files={files}
                 activeFile={activeFile}
@@ -329,7 +376,32 @@ const TextEditor = () => {
                   </div>
                 )}
               </div>
-            </>
+            </div>
+          ) : null}
+
+          {/* Graph panel */}
+          {graphOpen && (
+            <div className={`${whiteboardOpen || editorOpen ? 'w-80' : 'flex-1'} border-l border-gray-700/50 flex-shrink-0`}>
+              <div className="h-full flex flex-col">
+                <div className="flex items-center justify-between px-3 py-1.5 bg-[#161b22] border-b border-gray-700/30 select-none">
+                  <span className="text-xs font-medium text-gray-300">
+                    CALL GRAPH
+                  </span>
+                  <span className="text-[10px] text-gray-500 font-mono">
+                    {graphNodes.length} nodes
+                  </span>
+                </div>
+                <div className="flex-1 relative overflow-hidden">
+                  <GraphPanel
+                    nodes={graphNodes}
+                    edges={graphEdges}
+                    loading={graphLoading}
+                    error={graphError}
+                    onNodeClick={handleGraphNodeClick}
+                  />
+                </div>
+              </div>
+            </div>
           )}
         </div>
 
