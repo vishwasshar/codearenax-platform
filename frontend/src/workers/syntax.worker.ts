@@ -128,6 +128,35 @@ function walkAST(
         });
       }
     }
+
+    if (
+      node.init.type === "CallExpression" &&
+      node.init.callee?.type === "Identifier" &&
+      node.init.callee.name === "require" &&
+      node.init.arguments?.[0]?.type === "StringLiteral"
+    ) {
+      const source = node.init.arguments[0].value;
+      const specifiers: string[] = [];
+      if (node.id?.type === "ObjectPattern") {
+        for (const prop of node.id.properties || []) {
+          if (prop.type === "RestElement") {
+            specifiers.push(`...${prop.argument?.name || ""}`);
+          } else {
+            const name = prop.key?.name || prop.value?.name || "";
+            if (name) specifiers.push(name);
+          }
+        }
+      } else if (node.id?.type === "Identifier") {
+        specifiers.push(node.id.name);
+      }
+      if (source && specifiers.length > 0) {
+        imports.push({
+          source,
+          specifiers,
+          startLine: node.loc?.start?.line ?? 0,
+        });
+      }
+    }
   }
 
   if (nodeType === "ExportDefaultDeclaration" && node.declaration) {
@@ -154,6 +183,7 @@ function walkAST(
   ) {
     let name = "";
     if (node.callee.type === "Identifier") {
+      if (node.callee.name === "require") return;
       name = node.callee.name;
     } else if (
       node.callee.property?.type === "Identifier"

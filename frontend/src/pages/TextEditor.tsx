@@ -20,6 +20,7 @@ import FileTree from "../components/FileTree";
 import TabBar from "../components/TabBar";
 import { WhiteboardCanvas } from "../components/WhiteboardCanvas";
 import { useCodeGraph } from "../hooks/useCodeGraph";
+import type { ViewMode } from "../hooks/useCodeGraph";
 import GraphPanel from "../components/GraphPanel";
 
 const TextEditor = () => {
@@ -131,8 +132,40 @@ const TextEditor = () => {
     };
   }, [awareness]);
 
-  const { nodes: graphNodes, edges: graphEdges, loading: graphLoading, error: graphError } =
-    useCodeGraph(ydoc, activeFile);
+  const [graphViewMode, setGraphViewMode] = useState<ViewMode>("call-graph");
+  const [graphSearch, setGraphSearch] = useState("");
+  const [graphFilter, setGraphFilter] = useState("all");
+  const [graphDepth, setGraphDepth] = useState(3);
+  const [graphCycles, setGraphCycles] = useState(false);
+  const [graphSelectedFunction, setGraphSelectedFunction] = useState("");
+  const [graphUseElkjs, setGraphUseElkjs] = useState(false);
+
+  const {
+    nodes: graphNodes,
+    edges: graphEdges,
+    loading: graphLoading,
+    error: graphError,
+    cycles: graphCyclesList,
+    mermaidDef: graphMermaidDef,
+    availableFunctions: graphAvailableFunctions,
+  } = useCodeGraph({
+    ydoc,
+    activeFile,
+    files,
+    viewMode: graphViewMode,
+    searchQuery: graphSearch,
+    filterType: graphFilter as any,
+    depthLimit: graphDepth,
+    highlightCycles: graphCycles,
+    selectedFunction: graphSelectedFunction,
+    useElkjs: graphUseElkjs,
+  });
+
+  useEffect(() => {
+    if (graphViewMode === "sequence-diagram" && !graphSelectedFunction && graphAvailableFunctions.length > 0) {
+      setGraphSelectedFunction(graphAvailableFunctions[0]);
+    }
+  }, [graphViewMode, graphAvailableFunctions, graphSelectedFunction]);
 
   const handleGraphNodeClick = useCallback(
     (node: any) => {
@@ -398,6 +431,23 @@ const TextEditor = () => {
                     loading={graphLoading}
                     error={graphError}
                     onNodeClick={handleGraphNodeClick}
+                    viewMode={graphViewMode}
+                    onViewModeChange={setGraphViewMode}
+                    searchQuery={graphSearch}
+                    onSearchChange={setGraphSearch}
+                    filterType={graphFilter}
+                    onFilterChange={setGraphFilter}
+                    depthLimit={graphDepth}
+                    onDepthChange={setGraphDepth}
+                    highlightCycles={graphCycles}
+                    onCycleToggle={setGraphCycles}
+                    cycles={graphCyclesList}
+                    useElkjs={graphUseElkjs}
+                    onElkjsToggle={setGraphUseElkjs}
+                    mermaidDef={graphMermaidDef}
+                    availableFunctions={graphAvailableFunctions}
+                    selectedFunction={graphSelectedFunction}
+                    onSelectedFunctionChange={setGraphSelectedFunction}
                   />
                 </div>
               </div>
