@@ -4,9 +4,11 @@ import { unAuthRequest } from "../utils/axios.interceptor";
 import { useDispatch } from "react-redux";
 import { login } from "../redux/slices/user.slice";
 import { useGoogleLogin } from "@react-oauth/google";
+import { toast } from "react-toastify";
 
 export const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
+  const [loading, setLoading] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -19,11 +21,17 @@ export const Login = () => {
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
+    setLoading(true);
     try {
       const res = await unAuthRequest.post("auth/login", formData);
       dispatch(login(res.data));
+      toast.success("Logged in successfully!");
       navigate("/rooms");
-    } catch (err) {}
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Login failed. Check your credentials.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const googleLoginHandler = async (response: any) => {
@@ -32,14 +40,17 @@ export const Login = () => {
         code: response.code,
       });
       dispatch(login(res.data));
+      toast.success("Logged in successfully!");
       navigate("/rooms");
-    } catch (err) {}
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Google login failed.");
+    }
   };
 
   const handleGoogleLogin = useGoogleLogin({
     onSuccess: googleLoginHandler,
     onError: () => {
-      console.log("Login Failed");
+      toast.error("Google login failed.");
     },
     flow: "auth-code",
   });
@@ -80,8 +91,8 @@ export const Login = () => {
                   Register Now
                 </Link>
               </div>
-              <button className="btn btn-neutral mt-4" type="submit">
-                Login
+              <button className="btn btn-neutral mt-4" type="submit" disabled={loading}>
+                {loading ? <span className="loading loading-spinner" /> : "Login"}
               </button>
               <button
                 className="btn btn-neutral mt-4"

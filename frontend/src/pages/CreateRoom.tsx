@@ -2,21 +2,31 @@ import { useState, type FormEvent } from "react";
 import { authRequest } from "../utils/axios.interceptor";
 import { Link, useNavigate } from "react-router-dom";
 import { FaLongArrowAltLeft } from "react-icons/fa";
+import { toast } from "react-toastify";
 
 export const CreateRoom = () => {
   const [name, setName] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (!name.trim()) {
+      toast.error("Please enter a room name.");
+      return;
+    }
+    setLoading(true);
     try {
       const res = await authRequest.post("/rooms", { name });
       if (res.status == 201) {
+        toast.success("Room created!");
         navigate("/room/" + res.data.slug);
       }
-    } catch (err) {
-      console.log(err);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to create room.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -38,8 +48,8 @@ export const CreateRoom = () => {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                 />
-                <button className="btn btn-neutral mt-4" type="submit">
-                  Create
+                <button className="btn btn-neutral mt-4" type="submit" disabled={loading}>
+                  {loading ? <span className="loading loading-spinner" /> : "Create"}
                 </button>
               </fieldset>
             </form>

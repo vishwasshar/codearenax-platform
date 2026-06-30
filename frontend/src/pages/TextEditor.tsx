@@ -229,7 +229,7 @@ const TextEditor = () => {
           onClick={() => setFileTreeOpen((p) => !p)}
           title="Toggle file tree"
         >
-          <FiFolder size={15} />
+          <FiFolder size={18} />
         </button>
 
         <select
@@ -257,7 +257,7 @@ const TextEditor = () => {
             onClick={() => setEditorOpen((p) => !p)}
             title="Toggle editor"
           >
-            <FiCode size={15} />
+            <FiCode size={18} />
           </button>
 
           <button
@@ -269,7 +269,7 @@ const TextEditor = () => {
             onClick={() => setGraphOpen((p) => !p)}
             title="Toggle call graph"
           >
-            <FiShare2 size={15} />
+            <FiShare2 size={18} />
           </button>
 
           <button
@@ -281,7 +281,7 @@ const TextEditor = () => {
             onClick={() => setWhiteboardOpen((p) => !p)}
             title="Toggle whiteboard"
           >
-            <FiGrid size={15} />
+            <FiGrid size={18} />
           </button>
 
           <button
@@ -293,7 +293,7 @@ const TextEditor = () => {
             onClick={() => setSidebarOpen((p) => !p)}
             title="Toggle collab sidebar"
           >
-            <FiSidebar size={15} />
+            <FiSidebar size={18} />
           </button>
 
           <Link

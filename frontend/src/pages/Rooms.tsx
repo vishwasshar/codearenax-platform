@@ -49,7 +49,7 @@ const Rooms = () => {
         </Link>
       </div>
       <div className="w-full grid grid-cols-3 md:grid-cols-5 gap-5 ">
-        {rooms?.map((room: RoomDetail) => (
+        {rooms && rooms.length > 0 ? rooms?.map((room: RoomDetail) => (
           <div
             className="card bg-base-100 w-full max-w-sm shrink-0 shadow-2xl"
             key={room._id}
@@ -94,7 +94,16 @@ const Rooms = () => {
               </div>
             </div>
           </div>
-        ))}
+        )) : (
+          <div className="col-span-full flex flex-col items-center justify-center py-20 text-gray-400">
+            <div className="text-6xl mb-4">🏠</div>
+            <h3 className="text-xl font-semibold mb-2">No rooms yet</h3>
+            <p className="mb-6 text-sm">Create your first room to start collaborating!</p>
+            <Link to={"/create-room"} className="btn btn-accent rounded-lg">
+              Create Room
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );

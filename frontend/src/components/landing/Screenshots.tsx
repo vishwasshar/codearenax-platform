@@ -81,12 +81,13 @@ export default function Screenshots() {
 
             {/* Right */}
 
-            <div className="relative bg-slate-900 p-6">
-              <img
-                src={screenshot.image}
-                alt={screenshot.title}
-                className="h-full w-full rounded-xl border border-white/10 object-cover"
-              />
+            <div className="relative bg-gradient-to-br from-slate-800 to-slate-900 p-6 flex items-center justify-center min-h-[300px]">
+              <div className="text-center">
+                <div className="text-6xl mb-4">
+                  {current === 0 ? "📝" : current === 1 ? "▶️" : current === 2 ? "🎥" : "📊"}
+                </div>
+                <p className="text-slate-400 text-sm font-mono">{screenshot.image}</p>
+              </div>
             </div>
           </div>
         </GlassCard>

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { unAuthRequest } from "../utils/axios.interceptor";
+import { toast } from "react-toastify";
 
 export const Register = () => {
   const [formData, setFormData] = useState({
@@ -8,6 +9,7 @@ export const Register = () => {
     email: "",
     password: "",
   });
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleInput = (e: any) => {
@@ -19,12 +21,17 @@ export const Register = () => {
 
   const handleRegister = async (e: FormEvent) => {
     e.preventDefault();
+    setLoading(true);
     try {
       const res = await unAuthRequest.post("/users", formData);
-
-      if (res.status == 201) navigate("/login");
-    } catch (err) {
-      console.log(err);
+      if (res.status == 201) {
+        toast.success("Account created! Please log in.");
+        navigate("/login");
+      }
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Registration failed. Try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -46,6 +53,7 @@ export const Register = () => {
                 className="input"
                 placeholder="Name"
                 name="name"
+                value={formData.name}
                 onChange={handleInput}
               />
               <label className="label">Email</label>
@@ -54,6 +62,7 @@ export const Register = () => {
                 className="input"
                 placeholder="Email"
                 name="email"
+                value={formData.email}
                 onChange={handleInput}
               />
               <label className="label">Password</label>
@@ -62,6 +71,7 @@ export const Register = () => {
                 className="input"
                 placeholder="Password"
                 name="password"
+                value={formData.password}
                 onChange={handleInput}
               />
               <div>
@@ -71,8 +81,8 @@ export const Register = () => {
                   Login Now
                 </Link>
               </div>
-              <button className="btn btn-neutral mt-4" type="submit">
-                Register
+              <button className="btn btn-neutral mt-4" type="submit" disabled={loading}>
+                {loading ? <span className="loading loading-spinner" /> : "Register"}
               </button>
             </fieldset>
           </form>

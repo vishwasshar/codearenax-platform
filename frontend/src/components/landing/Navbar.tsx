@@ -104,10 +104,13 @@ export default function Navbar() {
             <Github size={20} />
           </a> */}
 
-          <button className="flex items-center gap-2 rounded-xl bg-cyan-500 px-5 py-3 font-semibold text-slate-950 transition hover:bg-cyan-400">
+          <a
+            href="/login"
+            className="flex items-center gap-2 rounded-xl bg-cyan-500 px-5 py-3 font-semibold text-slate-950 transition hover:bg-cyan-400"
+          >
             Get Started
             <ArrowRight size={18} />
-          </button>
+          </a>
         </div>
 
         {/* Mobile Menu */}
@@ -149,9 +152,12 @@ export default function Navbar() {
               GitHub
             </a> */}
 
-            <button className="mt-3 rounded-xl bg-cyan-500 py-3 font-semibold text-slate-950">
+            <a
+              href="/login"
+              className="mt-3 block rounded-xl bg-cyan-500 py-3 text-center font-semibold text-slate-950"
+            >
               Get Started
-            </button>
+            </a>
           </div>
         </div>
       )}

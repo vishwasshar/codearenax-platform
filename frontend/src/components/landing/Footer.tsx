@@ -1,16 +1,27 @@
 import { Code2, Mail, ArrowUpRight } from "lucide-react";
+import { FaGithub, FaLinkedin } from "react-icons/fa";
 
-const footerLinks = {
-  Product: ["Features", "Architecture", "Roadmap", "Documentation"],
-  Technologies: [
-    "React",
-    "NestJS",
-    "MongoDB",
-    "Socket.IO",
-    "MediaSoup",
-    "Yjs CRDT",
+const footerLinks: Record<string, { label: string; href: string }[]> = {
+  Product: [
+    { label: "Features", href: "#features" },
+    { label: "Architecture", href: "#architecture" },
+    { label: "Roadmap", href: "#roadmap" },
+    { label: "Documentation", href: "#" },
   ],
-  Resources: ["GitHub", "Portfolio", "Report", "Presentation"],
+  Technologies: [
+    { label: "React", href: "https://react.dev" },
+    { label: "NestJS", href: "https://nestjs.com" },
+    { label: "MongoDB", href: "https://mongodb.com" },
+    { label: "Socket.IO", href: "https://socket.io" },
+    { label: "MediaSoup", href: "https://mediasoup.org" },
+    { label: "Yjs CRDT", href: "https://yjs.dev" },
+  ],
+  Resources: [
+    { label: "GitHub", href: "https://github.com/vishwasshar" },
+    { label: "Portfolio", href: "https://vishwassharma.in" },
+    { label: "LinkedIn", href: "https://linkedin.com/in/vishwassharma3287" },
+    { label: "Presentation", href: "#" },
+  ],
 };
 
 export default function Footer() {
@@ -42,26 +53,26 @@ export default function Footer() {
             </p>
 
             <div className="mt-8 flex gap-4">
-              {/* <a
-                href="https://github.com/"
+              <a
+                href="https://github.com/vishwasshar"
                 target="_blank"
                 rel="noreferrer"
                 className="rounded-xl border border-white/10 bg-white/5 p-3 transition hover:border-cyan-500 hover:text-cyan-400"
               >
-                <Github size={20} />
+                <FaGithub size={20} />
               </a>
 
               <a
-                href="https://linkedin.com/"
+                href="https://linkedin.com/in/vishwassharma3287"
                 target="_blank"
                 rel="noreferrer"
                 className="rounded-xl border border-white/10 bg-white/5 p-3 transition hover:border-cyan-500 hover:text-cyan-400"
               >
-                <Linkedin size={20} />
-              </a> */}
+                <FaLinkedin size={20} />
+              </a>
 
               <a
-                href="mailto:your@email.com"
+                href="mailto:vishwassharma3287@gmail.com"
                 className="rounded-xl border border-white/10 bg-white/5 p-3 transition hover:border-cyan-500 hover:text-cyan-400"
               >
                 <Mail size={20} />
@@ -75,12 +86,14 @@ export default function Footer() {
 
               <ul className="space-y-4">
                 {links.map((link) => (
-                  <li key={link}>
+                  <li key={link.label}>
                     <a
-                      href="#"
+                      href={link.href}
+                      target={link.href.startsWith("http") ? "_blank" : undefined}
+                      rel={link.href.startsWith("http") ? "noreferrer" : undefined}
                       className="group flex items-center gap-2 text-slate-400 transition hover:text-cyan-400"
                     >
-                      {link}
+                      {link.label}
 
                       <ArrowUpRight
                         size={15}
@@ -100,7 +113,7 @@ export default function Footer() {
         {/* Bottom */}
         <div className="flex flex-col items-center justify-between gap-5 md:flex-row">
           <p className="text-sm text-slate-500">
-            © {new Date().getFullYear()} CodeArenaX. Built with React, NestJS,
+            © {new Date().getFullYear()} CodeArenaX by Vishwas Sharma. Built with React, NestJS,
             MongoDB, Yjs and MediaSoup.
           </p>
 

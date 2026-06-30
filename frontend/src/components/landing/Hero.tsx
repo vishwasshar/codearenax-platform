@@ -1,4 +1,5 @@
 import { ArrowRight, Play } from "lucide-react";
+import { FaGithub } from "react-icons/fa";
 
 import HeroBackground from "./HeroBackground";
 import HeroCodePreview from "./HeroCodePreview";
@@ -52,21 +53,23 @@ export default function Hero() {
               Get Started
               <ArrowRight size={20} />
             </a>
-            {/* 
             <a
-              href="https://github.com/your-username/CodeArenaX"
+              href="https://github.com/vishwasshar"
               target="_blank"
               rel="noreferrer"
               className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-7 py-4 font-semibold text-white transition hover:border-cyan-400 hover:text-cyan-400"
             >
-              <Github size={20} />
+              <FaGithub size={20} />
               GitHub
-            </a> */}
+            </a>
 
-            <button className="flex items-center gap-3 rounded-xl border border-white/10 bg-slate-900 px-7 py-4 font-semibold text-white transition hover:border-violet-400">
+            <a
+              href="/login"
+              className="flex items-center gap-3 rounded-xl border border-white/10 bg-slate-900 px-7 py-4 font-semibold text-white transition hover:border-violet-400"
+            >
               <Play size={18} />
               Live Demo
-            </button>
+            </a>
           </div>
 
           {/* Stats */}
