@@ -1,6 +1,6 @@
 # CodeArenaX
 
-CodeArenaX is a real-time collaborative coding platform for competitive programming, technical interviews, team collaboration, and hackathons. It combines conflict-free code editing, room-based communication, persistent sessions, authentication, and an extensible execution pipeline in one full-stack application.
+CodeArenaX is a real-time collaborative coding platform for competitive programming, technical interviews, team collaboration, and hackathons. It combines CRDT-based conflict-free code editing, voice/video calls, room-based access control, session replay, interactive code graphs, a shared whiteboard, and an extensible execution pipeline in one full-stack application.
 
 ---
 
@@ -8,7 +8,6 @@ CodeArenaX is a real-time collaborative coding platform for competitive programm
 
 - [Overview](#overview)
 - [Features](#features)
-- [Screenshots](#screenshots)
 - [Technology Stack](#technology-stack)
 - [Architecture](#architecture)
 - [Project Structure](#project-structure)
@@ -23,52 +22,29 @@ CodeArenaX is a real-time collaborative coding platform for competitive programm
 
 ## Overview
 
-CodeArenaX provides a low-latency, multi-user coding environment with collaborative editing, chat, call widgets, room access control, session persistence, and secure backend APIs.
+CodeArenaX provides a low-latency, multi-user coding environment with collaborative editing, in-room chat, media (voice/video) calls via mediasoup, a shared whiteboard, a code graph visualizer, a file tree with multi-tab editing, a built-in terminal, and session replay. Room access is controlled through owner/editor/viewer roles, and sessions are persisted to MongoDB with Redis-backed WebSocket scaling.
 
 The platform uses CRDT-based synchronization with Yjs so concurrent editor changes remain conflict-free, order-independent, and resilient to latency or reconnection. A NestJS backend handles REST APIs and WebSocket gateways, Redis enables scalable Socket.IO pub/sub across server instances, and MongoDB persists users, rooms, and code snapshots.
-
-CodeArenaX is designed as a foundation for collaborative IDEs, coding interview tools, competitive programming rooms, and hackathon workspaces.
 
 ---
 
 ## Features
 
-- JWT authentication with extensible Google OAuth support
-- Room creation, update, join, leave, and access-control workflows
-- Monaco-powered code editor with real-time CRDT collaboration
-- Conflict-free editing through Yjs, `y-monaco`, and Socket.IO
-- Redis-backed WebSocket scaling for multi-instance deployments
-- MongoDB persistence for users, rooms, and collaborative session snapshots
-- In-room chat and call widgets for team communication
-- Resizable and draggable IDE-style UI panels
-- Backend code-run API integration point for an external execution engine
-- TypeScript-first frontend and backend development experience
-
----
-
-## Screenshots
-
-The following screenshots showcase the current state of CodeArenaX across key user flows.
-
-### Login Page
-
-![Login Page](./screenshots/Login.png)
-
-### Rooms
-
-![Rooms](./screenshots/Rooms.png)
-
-### Create Room
-
-![Create Room](./screenshots/CreateRoom.png)
-
-### Update Room and Access Control
-
-![Update Room](./screenshots/UpdateRoom.png)
-
-### Resizable and Draggable Text Editor with Chat Widget
-
-![Text Editor](./screenshots/TextEditor.png)
+- **CRDT Collaboration** — Conflict-free concurrent editing via Yjs, `y-monaco`, and Socket.IO.
+- **Monaco Editor** — Full-featured code editor with syntax highlighting, multi-cursor, and IntelliSense.
+- **File Management** — In-editor file tree with create, rename, delete, and multi-tab support.
+- **Language Switching** — Per-file language selection (JavaScript, TypeScript, Python, Java, Go, Rust, C++, and more).
+- **Code Execution** — Run code against a backend execution engine with real-time output in the terminal panel.
+- **Interactive Call Graph** — Visualize function calls, dependencies, and cycles; supports sequence diagrams.
+- **Shared Whiteboard** — Real-time collaborative whiteboard powered by tldraw and Yjs.
+- **Collaboration Sidebar** — See who's online, in-room chat, and media controls.
+- **Voice/Video Calls** — Peer-to-peer media via mediasoup with dynamic transport management.
+- **Session Replay** — Replay code edits and cursor movements for any room session.
+- **Access Control** — Owner, editor, and viewer roles per room with user management.
+- **Authentication** — JWT-based with Google OAuth support.
+- **Persistent Sessions** — MongoDB snapshots enable room restoration across restarts.
+- **Resizable UI** — IDE-style panels that can be resized, collapsed, and rearranged.
+- **Responsive Design** — Dark-themed UI with Tailwind CSS and DaisyUI.
 
 ---
 
@@ -78,15 +54,18 @@ The following screenshots showcase the current state of CodeArenaX across key us
 | --- | --- |
 | Frontend | React 19, TypeScript, Vite |
 | Editor | Monaco Editor, `@monaco-editor/react` |
-| Realtime Communication | Socket.IO, Redis Adapter (Pub/Sub) |
-| Collaboration Engine | Yjs (CRDT), `y-monaco`, `y-protocols` |
+| Collaboration Engine | Yjs (CRDT), `y-monaco`, `y-protocols`, `y-indexeddb` |
+| Real-time Communication | Socket.IO, Redis Adapter (Pub/Sub) |
 | State Management | Redux Toolkit, Redux Persist |
 | UI & Styling | Tailwind CSS, DaisyUI, `re-resizable`, `@dnd-kit` |
 | Backend | NestJS, REST APIs, WebSocket gateways |
 | Persistence | MongoDB, Mongoose |
 | Caching & Sync | Redis, ioredis |
-| Authentication | JWT, Passport, Google OAuth support |
-| Media/Terminal UX | mediasoup client, xterm.js |
+| Authentication | JWT, Passport, Google OAuth |
+| Media | mediasoup (WebRTC SFU) |
+| Whiteboard | tldraw, Yjs binding |
+| Terminal | xterm.js |
+| Graph Visualization | React Flow, Elkjs, Mermaid |
 | Developer Tools | ESLint, Prettier, Jest, SWC |
 
 ---
@@ -98,12 +77,15 @@ Browser / React Client
   ├─ REST API calls ───────────────▶ NestJS HTTP API
   ├─ Room sockets ─────────────────▶ NestJS Socket.IO gateways
   ├─ CRDT editor updates ──────────▶ Yjs + Socket.IO collaboration layer
-  └─ Code execution requests ──────▶ NestJS run-code module ─▶ External execution engine
+  ├─ Code execution requests ──────▶ NestJS run-code module ─▶ External execution engine
+  ├─ Whiteboard sync ──────────────▶ Yjs + tldraw over Socket.IO
+  └─ Voice/video calls ────────────▶ mediasoup (SFU) over Socket.IO
 
 NestJS Backend
-  ├─ MongoDB stores users, rooms, and snapshots
-  ├─ Redis powers Socket.IO pub/sub and cross-instance sync
-  └─ JWT/Passport protects authenticated routes
+  ├─ MongoDB stores users, rooms, code snapshots, and chat history
+  ├─ Redis powers Socket.IO pub/sub, cross-instance sync, and room metadata
+  ├─ JWT/Passport protects authenticated routes and socket connections
+  └─ mediasoup worker manages WebRTC transports, producers, and consumers
 ```
 
 ### How Real-Time Collaboration Works
@@ -113,7 +95,9 @@ NestJS Backend
 - Text updates are conflict-free and can be merged safely from multiple users.
 - Socket.IO transports collaboration events between clients and backend gateways.
 - Redis pub/sub allows real-time events to scale across multiple backend instances.
-- MongoDB snapshots make room/session restoration possible after reconnects or restarts.
+- MongoDB snapshots make room and session restoration possible after reconnects or restarts.
+- The whiteboard uses tldraw over a separate Yjs document bound via Socket.IO.
+- Call graphs are computed client-side by parsing function declarations and calls from the CRDT document text.
 
 ---
 
@@ -121,8 +105,26 @@ NestJS Backend
 
 ```text
 .
-├── backend/          # NestJS API, WebSocket gateways, auth, rooms, users, run-code integration
-├── frontend/         # React + Vite client, collaborative editor, rooms UI, chat/call widgets
+├── backend/          # NestJS API, WebSocket gateways, auth, rooms, users, run-code, replay, mediasoup
+│   ├── src/
+│   │   ├── auth/           # JWT & Google OAuth strategies, guards
+│   │   ├── rooms/          # Room CRUD, gateway, guard, service
+│   │   ├── crdt/           # CRDT update forwarding, language sync
+│   │   ├── chat/           # In-room chat messages
+│   │   ├── mediasoup/      # WebRTC SFU transport management
+│   │   ├── replay/         # Edit history and session replay
+│   │   ├── run-code/       # Code execution integration
+│   │   ├── schemas/        # Mongoose schemas (room, user, chat, replay)
+│   │   └── redis-store/    # Redis persistence helpers
+│   └── ...
+├── frontend/         # React + Vite client
+│   ├── src/
+│   │   ├── components/     # CollabSidebar, FileTree, TabBar, StatusBar, TerminalPanel, WhiteboardCanvas, GraphPanel, etc.
+│   │   ├── pages/          # Login, Register, Rooms, CreateRoom, TextEditor, RoomReplay
+│   │   ├── hooks/          # useCRDT, useRoomSocket, useCodeGraph, etc.
+│   │   ├── redux/          # Redux store, user slice
+│   │   └── commons/        # Shared types, language list
+│   └── ...
 ├── screenshots/      # README screenshots
 ├── LICENSE
 └── README.md
@@ -131,8 +133,6 @@ NestJS Backend
 ---
 
 ## Prerequisites
-
-Install the following before running the project locally:
 
 - Node.js 20 or newer
 - npm
@@ -145,11 +145,9 @@ Install the following before running the project locally:
 
 ## Environment Setup
 
-CodeArenaX requires separate environment configuration for the frontend and backend services. Store these values in local `.env` files and do not commit secrets to version control.
+Create separate `.env` files for frontend and backend. Do not commit secrets.
 
-### Frontend Environment
-
-Create `frontend/.env`:
+### Frontend (`frontend/.env`)
 
 ```env
 VITE_API_URL=http://localhost:5500
@@ -157,9 +155,7 @@ VITE_CRDT_SOCKET_URL=http://localhost:3003
 VITE_GOOGLE_CLIENT_ID=your_google_client_id
 ```
 
-### Backend Environment
-
-Create `backend/.env`:
+### Backend (`backend/.env`)
 
 ```env
 MONGOOSE_URI=mongodb_connection_string
@@ -176,7 +172,7 @@ REDIS_TTL=84400
 
 ## Getting Started
 
-Run the backend and frontend in separate terminals.
+Run backend and frontend in separate terminals.
 
 ### 1. Install backend dependencies
 
@@ -191,28 +187,21 @@ npm install
 npm run start:dev
 ```
 
-### 3. Install frontend dependencies
+### 3. Install and start the frontend
 
 ```bash
 cd frontend
 npm install
-```
-
-### 4. Start the frontend
-
-```bash
 npm run dev
 ```
 
-The frontend will be served by Vite, and the backend will expose the NestJS API and WebSocket endpoints according to its local configuration.
+The frontend will be served by Vite (default `http://localhost:5173`), and the backend will expose the NestJS API on the configured port.
 
 ---
 
 ## Available Scripts
 
-### Backend
-
-Run from `backend/`:
+### Backend (from `backend/`)
 
 | Command | Description |
 | --- | --- |
@@ -224,9 +213,7 @@ Run from `backend/`:
 | `npm run test:e2e` | Run end-to-end tests |
 | `npm run test:cov` | Run tests with coverage |
 
-### Frontend
-
-Run from `frontend/`:
+### Frontend (from `frontend/`)
 
 | Command | Description |
 | --- | --- |
@@ -241,30 +228,33 @@ Run from `frontend/`:
 
 ### Phase 1 – Core Real-Time Collaboration (Completed)
 
-- JWT-based authentication
-- Monaco Editor integration
+- JWT-based authentication with Google OAuth support
+- Monaco Editor integration with language switching
 - Room-based real-time code synchronization using WebSockets
-- Basic in-room chat
-- Backend APIs for room creation and joining
+- In-room chat and basic API for rooms and users
 
-### Phase 2 – CRDT-Based Collaboration and Persistence (Completed)
+### Phase 2 – CRDT Collaboration, Persistence, and Advanced UI (Completed)
 
-- Replaced naive WebSocket code synchronization with CRDT-based collaboration using Yjs
-- Integrated Monaco Editor with Yjs using `y-monaco`
-- Ensured conflict-free concurrent edits across multiple users and sessions
-- Implemented room-based real-time updates using Socket.IO
-- Added Redis Pub/Sub and Socket.IO Redis Adapter for multi-instance WebSocket scalability
-- Implemented session persistence by storing CRDT snapshots and room data in MongoDB
-- Added room lifecycle management for create, join, leave, and cleanup flows
-- Implemented resizable and draggable UI panels for IDE-like layouts
-- Laid the foundation for extensible authentication using JWT and OAuth
+- Replaced naive WebSocket sync with CRDT-based collaboration using Yjs
+- Integrated Monaco Editor with Yjs via `y-monaco` for conflict-free editing
+- Added Redis Pub/Sub and Socket.IO Redis Adapter for multi-instance scaling
+- MongoDB snapshot persistence for room restoration across restarts
+- Room lifecycle management (create, join, leave, cleanup)
+- Resizable and draggable IDE-style panels with File Tree, Tab Bar, and Status Bar
+- Collab Sidebar with online users, chat, and media controls
+- Voice/video calls via mediasoup SFU
+- Shared whiteboard with tldraw and Yjs binding
+- Interactive code graph (call graph, dependency graph, sequence diagram)
+- Built-in terminal panel with xterm.js
+- Session replay with cursor and edit history
+- Room access control (owner, editor, viewer)
 
-### Phase 3 – Execution, Scaling, and Advanced Collaboration (In Progress)
+### Phase 3 – Execution, Scaling, and Workflow Enhancements (In Progress)
 
 - Docker-based isolated code execution engine
 - Language-specific execution containers with resource limits
 - Editor-to-execution pipeline for real-time code runs
-- Execution result streaming back to the editor
+- Execution result streaming back to the terminal
 - Improved session restore and recovery workflows
 - Competitive coding and hackathon workflow enhancements
 
@@ -272,4 +262,4 @@ Run from `frontend/`:
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.
+This project is licensed under the MIT License. See [LICENSE](./LICENSE) for details.
