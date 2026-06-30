@@ -41,6 +41,7 @@ export const useCRDT = (socket: Socket, userName: string) => {
   const [language, setLanguage] = useState<string>("javascript");
   const [roomMongooseId, setRoomMongooseId] = useState<string | undefined>();
   const [roomRole, setRoomRole] = useState<string | undefined>();
+  const [roomName, setRoomName] = useState<string | undefined>();
   const [saving, setSaving] = useState<boolean>(false);
 
   const handleCodeSave = async () => {
@@ -65,6 +66,7 @@ export const useCRDT = (socket: Socket, userName: string) => {
       filesList: FileEntry[],
       mongooseId: string,
       role: string,
+      name?: string,
     ) => {
       if (ydocRef.current) ydocRef.current?.destroy();
       if (awarenessRef.current) awarenessRef.current?.destroy();
@@ -96,6 +98,7 @@ export const useCRDT = (socket: Socket, userName: string) => {
 
       setRoomMongooseId(mongooseId);
       setRoomRole(role);
+      setRoomName(name);
     };
 
     const handleRemoteUpdate = (update: number[]) => {
@@ -305,6 +308,7 @@ export const useCRDT = (socket: Socket, userName: string) => {
     handleLangChange,
     roomMongooseId,
     roomRole,
+    roomName,
     handleCodeSave,
     saving,
   };

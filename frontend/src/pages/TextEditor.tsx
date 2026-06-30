@@ -43,6 +43,7 @@ const TextEditor = () => {
     handleLangChange,
     roomMongooseId,
     roomRole,
+    roomName,
     handleCodeSave,
     saving,
   } = useCRDT(socket, userName);
@@ -217,6 +218,10 @@ const TextEditor = () => {
           <FaLongArrowAltLeft />
           <span className="hidden sm:inline">All Rooms</span>
         </Link>
+
+        <span className="text-sm font-medium text-gray-200 truncate max-w-[200px]">
+          {roomName || (roomMongooseId || roomId)?.slice(0, 8) + "…"}
+        </span>
 
         <div className="w-px h-5 bg-gray-700/50 mx-1" />
 

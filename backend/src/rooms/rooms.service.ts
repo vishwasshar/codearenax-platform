@@ -355,6 +355,7 @@ export class RoomsService {
         filesList,
         roomId,
         hasAccess.role,
+        roomDetails.name,
       );
     } catch (err) {
       console.error('Join error:', err);
